@@ -136,61 +136,13 @@ export default function ScannerPage() {
         </nav>
       </div>
 
-      {/* URL Scanner */}
+      {/* URL Scanner - Only URL scan functionality */}
       {activeTab === 'url' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 space-y-6">
-          {/* File Upload Section */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Upload HTML File
-            </label>
-            <input
-              type="file"
-              accept=".html,.htm"
-              onChange={handleFileSelect}
-              className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-900 dark:file:text-primary-300"
-              disabled={loading}
-              aria-label="Upload HTML file"
-            />
-            {file && !loading && (
-              <div className="mt-4 space-y-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Selected: <span className="font-semibold text-gray-900 dark:text-white">{file.name}</span>
-                </p>
-                <button
-                  type="button"
-                  onClick={handleFileUpload}
-                  disabled={loading}
-                  className="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                >
-                  <Scan className="w-5 h-5 inline mr-2" aria-hidden="true" />
-                  Scan File
-                </button>
-              </div>
-            )}
-            {loading && (
-              <p className="mt-2 text-sm text-primary-600 dark:text-primary-400">
-                <Loader2 className="w-4 h-4 inline animate-spin mr-2" aria-hidden="true" />
-                Scanning file...
-              </p>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or</span>
-            </div>
-          </div>
-
-          {/* URL Scan Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <form onSubmit={handleUrlScan} className="space-y-4">
             <div>
               <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Scan Website URL
+                Website URL
               </label>
               <input
                 type="url"
@@ -200,6 +152,7 @@ export default function ScannerPage() {
                 placeholder="https://example.com"
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 disabled={loading}
+                required
                 aria-required="true"
               />
             </div>
