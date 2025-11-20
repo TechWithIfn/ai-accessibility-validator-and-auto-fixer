@@ -1,0 +1,174 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #ffffff;
+}
+
+.popup-container {
+  padding: 16px;
+}
+
+.popup-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.popup-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.popup-header p {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.btn {
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-primary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #111827;
+  margin-top: 12px;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+.status {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.status.success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status.loading {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.hidden {
+  display: none;
+}
+
+.results {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.results-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.stat {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.stat-label {
+  display: block;
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.popup-actions {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.loading-spinner {
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+

@@ -1,0 +1,8 @@
+{
+  "success": true,
+  "fixed_code": "<img src=\"hero.jpg\" alt=\"Hero image showing modern office workspace with diverse team collaborating\" />",
+  "explanation": "Added alt attribute with generated description: 'Hero image showing modern office workspace with diverse team collaborating'. This provides text alternatives for screen reader users.",
+  "before_code": "<img src=\"hero.jpg\" />",
+  "after_code": "<img src=\"hero.jpg\" alt=\"Hero image showing modern office workspace with diverse team collaborating\" />"
+}
+

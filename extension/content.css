@@ -1,0 +1,260 @@
+/* Content script styles for highlighting and sidebar */
+
+/* Highlighted elements */
+.a11y-highlighted {
+  outline: 3px solid #ef4444 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2) !important;
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Sidebar */
+#a11y-sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 400px !important;
+  height: 100vh !important;
+  background: #ffffff !important;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
+  z-index: 999999 !important;
+  overflow-y: auto !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+.a11y-sidebar-header {
+  padding: 16px !important;
+  background: #3b82f6 !important;
+  color: white !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1 !important;
+}
+
+.a11y-sidebar-header h2 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+}
+
+.a11y-close-btn {
+  background: transparent !important;
+  border: none !important;
+  color: white !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  width: 30px !important;
+  height: 30px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+}
+
+.a11y-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.a11y-close-btn:focus {
+  outline: 2px solid white !important;
+  outline-offset: 2px !important;
+}
+
+.a11y-sidebar-content {
+  padding: 16px !important;
+}
+
+.a11y-loading,
+.a11y-message {
+  text-align: center !important;
+  padding: 32px 16px !important;
+  color: #6b7280 !important;
+}
+
+.a11y-summary {
+  display: flex !important;
+  gap: 8px !important;
+  margin-bottom: 16px !important;
+  padding-bottom: 16px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.a11y-stat {
+  flex: 1 !important;
+  text-align: center !important;
+  padding: 12px !important;
+  background: #f9fafb !important;
+  border-radius: 6px !important;
+}
+
+.a11y-stat-label {
+  display: block !important;
+  font-size: 11px !important;
+  color: #6b7280 !important;
+  margin-bottom: 4px !important;
+}
+
+.a11y-stat-value {
+  display: block !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #111827 !important;
+}
+
+.a11y-issues-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.a11y-issue {
+  padding: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 6px !important;
+  background: #f9fafb !important;
+}
+
+.a11y-issue-header {
+  display: flex !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.a11y-severity {
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.a11y-severity-high {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+}
+
+.a11y-severity-medium {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+.a11y-severity-low {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+}
+
+.a11y-wcag {
+  font-size: 11px !important;
+  color: #6b7280 !important;
+}
+
+.a11y-issue-title {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #111827 !important;
+  margin: 8px 0 4px 0 !important;
+}
+
+.a11y-issue-description {
+  font-size: 13px !important;
+  color: #4b5563 !important;
+  margin-bottom: 8px !important;
+  line-height: 1.5 !important;
+}
+
+.a11y-fix-suggestion {
+  font-size: 12px !important;
+  color: #059669 !important;
+  margin-bottom: 8px !important;
+  padding: 8px !important;
+  background: #d1fae5 !important;
+  border-radius: 4px !important;
+}
+
+.a11y-selector {
+  font-size: 11px !important;
+  color: #6b7280 !important;
+  margin-top: 8px !important;
+  font-family: 'Courier New', monospace !important;
+}
+
+.a11y-selector code {
+  background: #f3f4f6 !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+}
+
+.a11y-apply-fix,
+.a11y-highlight {
+  width: 100% !important;
+  padding: 8px 12px !important;
+  margin-top: 8px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.a11y-apply-fix {
+  background: #3b82f6 !important;
+  color: white !important;
+}
+
+.a11y-apply-fix:hover {
+  background: #2563eb !important;
+}
+
+.a11y-highlight {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+.a11y-highlight:hover {
+  background: #e5e7eb !important;
+}
+
+.a11y-apply-fix:focus,
+.a11y-highlight:focus {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  #a11y-sidebar {
+    background: #1f2937 !important;
+    color: #f9fafb !important;
+  }
+  
+  .a11y-issue {
+    background: #374151 !important;
+    border-color: #4b5563 !important;
+  }
+  
+  .a11y-issue-title {
+    color: #f9fafb !important;
+  }
+  
+  .a11y-issue-description {
+    color: #d1d5db !important;
+  }
+  
+  .a11y-stat {
+    background: #374151 !important;
+  }
+  
+  .a11y-stat-label {
+    color: #9ca3af !important;
+  }
+  
+  .a11y-stat-value {
+    color: #f9fafb !important;
+  }
+}
+

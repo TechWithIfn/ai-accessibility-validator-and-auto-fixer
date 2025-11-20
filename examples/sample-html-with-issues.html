@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sample Page with Accessibility Issues</title>
+  <style>
+    .low-contrast {
+      color: #cccccc;
+      background-color: #ffffff;
+    }
+    .button {
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+    .button:focus {
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Issue 1: Missing lang attribute -->
+  <h1>Welcome to Our Website</h1>
+  
+  <!-- Issue 2: Missing alt text -->
+  <img src="hero-image.jpg" />
+  
+  <!-- Issue 3: Low contrast link -->
+  <a href="#" class="low-contrast">Learn More</a>
+  
+  <!-- Issue 4: Missing label for input -->
+  <input type="text" id="email" placeholder="Enter your email" />
+  
+  <!-- Issue 5: Using div as button (non-semantic) -->
+  <div class="button" onclick="submitForm()">Submit</div>
+  
+  <!-- Issue 6: Missing heading hierarchy -->
+  <h1>First Heading</h1>
+  <h3>Third Heading (skipped h2)</h3>
+  
+  <!-- Issue 7: Link removed from tab order -->
+  <a href="https://example.com" tabindex="-1">Important Link</a>
+  
+  <!-- Issue 8: Missing focus indicator (removed with CSS) -->
+  <button class="button">Click Me</button>
+  
+  <!-- Issue 9: ARIA role on semantic element -->
+  <button role="button">Redundant Role</button>
+  
+  <!-- Issue 10: Empty alt without role=presentation -->
+  <img src="decorative-line.jpg" alt="" />
+  
+  <script>
+    function submitForm() {
+      // Issue: No keyboard support
+      alert('Form submitted!');
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Accessibility Validator</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <h1>Accessibility Validator</h1>
+      <p>AI-powered web accessibility scanning</p>
+    </div>
+    
+    <div class="popup-content">
+      <button id="scanButton" class="btn btn-primary">
+        <span class="btn-icon">🔍</span>
+        Scan This Page
+      </button>
+      
+      <div id="status" class="status hidden"></div>
+      
+      <div id="results" class="results hidden">
+        <div class="results-summary">
+          <div class="stat">
+            <span class="stat-label">Issues</span>
+            <span id="issueCount" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Score</span>
+            <span id="score" class="stat-value">100</span>
+          </div>
+        </div>
+        
+        <button id="viewIssuesButton" class="btn btn-secondary">
+          View All Issues
+        </button>
+      </div>
+      
+      <div class="popup-actions">
+        <a href="https://your-dashboard-url.com" target="_blank" class="link">
+          Open Dashboard →
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
+

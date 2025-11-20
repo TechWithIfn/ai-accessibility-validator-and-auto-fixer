@@ -1,0 +1,79 @@
+{
+  "success": true,
+  "url": "https://example.com",
+  "issues": [
+    {
+      "id": "alt-missing-0",
+      "type": "missing_alt_text",
+      "severity": "high",
+      "wcag_level": "A",
+      "wcag_rule": "1.1.1",
+      "element": "<img src=\"hero.jpg\" />",
+      "selector": "img",
+      "message": "Image missing alt attribute",
+      "description": "Images must have an alt attribute to provide text alternatives for screen readers.",
+      "fix_suggestion": "Add alt attribute with descriptive text",
+      "source_url": "https://example.com"
+    },
+    {
+      "id": "contrast-0",
+      "type": "contrast_ratio",
+      "severity": "high",
+      "wcag_level": "AA",
+      "wcag_rule": "1.4.3",
+      "element": "<a href=\"#\" style=\"color: #cccccc;\">Link</a>",
+      "selector": "a",
+      "message": "Color contrast ratio 2.1:1 is below WCAG AA standard (4.5:1)",
+      "description": "Text color (#cccccc) and background color (#ffffff) have insufficient contrast for readability.",
+      "current_ratio": 2.1,
+      "required_ratio": 4.5,
+      "text_color": "#cccccc",
+      "bg_color": "#ffffff",
+      "fix_suggestion": "Adjust colors to meet contrast requirements",
+      "source_url": "https://example.com"
+    },
+    {
+      "id": "form-0",
+      "type": "missing_label",
+      "severity": "high",
+      "wcag_level": "A",
+      "wcag_rule": "1.3.1",
+      "element": "<input type=\"text\" id=\"username\" />",
+      "selector": "#username",
+      "message": "Form input missing proper label",
+      "description": "Form inputs must have associated labels for screen reader users. Placeholder text is not sufficient.",
+      "fix_suggestion": "Add <label> element or aria-label/aria-labelledby attribute",
+      "source_url": "https://example.com"
+    },
+    {
+      "id": "semantic-0",
+      "type": "semantic_html",
+      "severity": "medium",
+      "wcag_level": "A",
+      "wcag_rule": "4.1.2",
+      "element": "<div onclick=\"doSomething()\">Click Me</div>",
+      "selector": ".button",
+      "message": "Using div as button - use semantic <button> element",
+      "description": "Use semantic HTML elements for better accessibility. Screen readers can better identify interactive elements.",
+      "fix_suggestion": "Replace with <button> element",
+      "source_url": "https://example.com"
+    },
+    {
+      "id": "language-0",
+      "type": "missing_lang",
+      "severity": "high",
+      "wcag_level": "A",
+      "wcag_rule": "3.1.1",
+      "element": "<html>",
+      "selector": "html",
+      "message": "HTML element missing lang attribute",
+      "description": "The lang attribute helps screen readers pronounce content correctly and search engines understand the language.",
+      "fix_suggestion": "Add lang attribute to <html> tag (e.g., <html lang=\"en\">)",
+      "source_url": "https://example.com"
+    }
+  ],
+  "total_issues": 5,
+  "wcag_level": "A",
+  "score": 85.5
+}
+
