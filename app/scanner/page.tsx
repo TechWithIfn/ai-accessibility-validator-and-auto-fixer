@@ -1,10 +1,34 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { Scan, Upload, Loader2, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
 import axios from 'axios';
+import BackendStatus from '../components/BackendStatus';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+// Create axios instance with timeout and retry
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000, // 30 second timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add request interceptor for better error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject(new Error('Request timeout. Please try again.'));
+    }
+    if (error.code === 'ERR_NETWORK') {
+      return Promise.reject(new Error('Cannot connect to backend. Please ensure the backend server is running on ' + API_BASE_URL));
+    }
+    return Promise.reject(error);
+  }
+);
 
 interface ScanResult {
   success: boolean;
@@ -26,41 +50,76 @@ export default function ScannerPage() {
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
-  const handleUrlScan = async (e: React.FormEvent) => {
+  const handleUrlScan = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!url.trim()) {
+      setError('Please enter a valid URL');
+      return;
+    }
+
+    // Validate URL format
+    try {
+      new URL(url.trim());
+    } catch {
+      setError('Please enter a valid URL (e.g., https://example.com)');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const response = await axios.post<ScanResult>(`${API_BASE_URL}/scan-url`, { url });
+      const response = await apiClient.post<ScanResult>('/scan-url', { url: url.trim() });
       setResult(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to scan URL. Make sure the backend is running.');
+      let errorMessage = 'Failed to scan URL. ';
+      
+      if (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED') {
+        errorMessage += `Cannot connect to backend at ${API_BASE_URL}. `;
+        errorMessage += 'Please make sure the backend server is running. ';
+        errorMessage += 'Start it by running: python backend/simple_server.py';
+      } else if (err.response?.status === 500) {
+        errorMessage += err.response?.data?.detail || 'Server error occurred';
+      } else if (err.response?.status === 404) {
+        errorMessage += `Backend endpoint not found. Make sure backend is running at ${API_BASE_URL}`;
+      } else {
+        errorMessage += err.response?.data?.detail || err.message || 'Unknown error occurred';
+      }
+      
+      setError(errorMessage);
+      console.error('Scan error:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [url]);
 
-  const handleHtmlScan = async (e: React.FormEvent) => {
+  const handleHtmlScan = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!htmlContent.trim()) {
+      setError('Please enter HTML content');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const response = await axios.post<ScanResult>(`${API_BASE_URL}/scan-html`, {
-        html: htmlContent,
-        css: cssContent,
-        js: jsContent,
+      const response = await apiClient.post<ScanResult>('/scan-html', {
+        html: htmlContent.trim(),
+        css: cssContent.trim() || undefined,
+        js: jsContent.trim() || undefined,
       });
       setResult(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to scan HTML. Make sure the backend is running.');
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to scan HTML. Make sure the backend is running on ' + API_BASE_URL;
+      setError(errorMessage);
+      console.error('Scan error:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [htmlContent, cssContent, jsContent]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
@@ -103,9 +162,12 @@ export default function ScannerPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Accessibility Scanner</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-300">Scan websites or HTML files for accessibility issues</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Accessibility Scanner</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">Scan websites or HTML files for accessibility issues</p>
+        </div>
+        <BackendStatus />
       </div>
 
       {/* Tabs */}
@@ -163,12 +225,12 @@ export default function ScannerPage() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 inline animate-spin mr-2" aria-hidden="true" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 inline animate-spin mr-2" aria-hidden="true" width="20" height="20" />
                   Scanning...
                 </>
               ) : (
                 <>
-                  <Scan className="w-5 h-5 inline mr-2" aria-hidden="true" />
+                  <Scan className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" aria-hidden="true" width="20" height="20" />
                   Scan Website
                 </>
               )}
@@ -349,21 +411,22 @@ export default function ScannerPage() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
+const StatCard = memo(({ label, value }: { label: string; value: string | number }) => {
   return (
     <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
       <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
       <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
     </div>
   );
-}
+});
+StatCard.displayName = 'StatCard';
 
-function IssueCard({ issue, severityColors }: { issue: any; severityColors: any }) {
+const IssueCard = memo(({ issue, severityColors }: { issue: any; severityColors: any }) => {
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center space-x-2 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className={`px-2 py-1 rounded text-xs font-semibold ${severityColors[issue.severity as keyof typeof severityColors] || severityColors.medium}`}>
               {issue.severity?.toUpperCase() || 'MEDIUM'}
             </span>
@@ -377,11 +440,12 @@ function IssueCard({ issue, severityColors }: { issue: any; severityColors: any 
             </p>
           )}
           {issue.selector && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-mono">{issue.selector}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-mono break-all">{issue.selector}</p>
           )}
         </div>
       </div>
     </div>
   );
-}
+});
+IssueCard.displayName = 'IssueCard';
 

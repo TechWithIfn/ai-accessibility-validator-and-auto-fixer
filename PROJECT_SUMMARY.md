@@ -214,17 +214,38 @@ The system checks for:
 - **Level AA**: Enhanced accessibility (contrast, focus indicators)
 - **Level AAA**: Advanced accessibility (readability, etc.)
 
-## 🔮 Future Enhancements
+## 📊 Current State vs. Roadmap
 
-Potential improvements:
+### ✅ Currently Implemented
+- ✅ Basic backend API (FastAPI)
+- ✅ Frontend dashboard (Next.js/React)
+- ✅ Browser extension (Manifest v3)
+- ✅ Rule-based accessibility checks
+- ✅ Basic auto-fix generation
+- ✅ Before/after code comparison UI
+
+### 🚧 In Progress / Next Steps
+See `IMPLEMENTATION_ROADMAP.md` for detailed roadmap:
+- ⏳ Playwright integration for headless browser
+- ⏳ axe-core integration for WCAG validation
+- ⏳ GitHub PR generator
+- ⏳ AI-powered alt text generation
+- ⏳ Computer Vision module for visual checks
+- ⏳ CI/CD integration
+
+### 🔮 Future Enhancements
 - [ ] Real ML models integration (BLIP, GPT-4 Vision)
 - [ ] Database persistence (PostgreSQL/MongoDB)
 - [ ] User authentication and teams
 - [ ] Scheduled scans
 - [ ] PDF report generation
-- [ ] CI/CD integration
 - [ ] Multi-language support
-- [ ] Extension icons (currently placeholder)
+- [ ] Advanced visual regression testing
+- [ ] Component-level fixes (React/Vue snippets)
+
+For complete project specification, see `PROJECT_SPEC.md`
+For architecture details, see `ARCHITECTURE.md`
+For implementation roadmap, see `IMPLEMENTATION_ROADMAP.md`
 
 ## 📝 Notes
 

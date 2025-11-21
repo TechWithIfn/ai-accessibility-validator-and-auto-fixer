@@ -1,167 +1,342 @@
-# Architecture Diagram
+# Architecture - AI Web Accessibility Validator & Auto-Fixer
 
-## System Architecture
+## System Overview
 
-```
-                      ┌────────────────────────────────────┐
-                      │          Browser Extension          │
-                      │  - Scan current page                │
-                      │  - Inject sidebar UI                │
-                      │  - Highlight issues                 │
-                      └───────────────┬────────────────────┘
-                                      │
-                                      ▼
-                     ┌────────────────────────────────────┐
-                     │            Frontend UI             │
-                     │      (React + Tailwind)            │
-                     │                                     │
-                     │  Pages:                             │
-                     │   - URL Scanner                     │
-                     │   - Accessibility Report Viewer     │
-                     │   - Before/After Code Compare       │
-                     │   - Dashboard & Settings            │
-                     └─────────────────┬──────────────────┘
-                                       │ REST API
-                                       ▼
-       ┌─────────────────────────────────────────────────────────────────┐
-       │                           Backend (FastAPI)                     │
-       │  Endpoints:                                                     │
-       │   - /scan-url        → fetches DOM, sends to AI processor       │
-       │   - /scan-html       → accepts uploaded HTML                    │
-       │   - /auto-fix        → returns fixed HTML/CSS                   │
-       │                                                                  │
-       │  Submodules:                                                     │
-       │   ✔ Vision Engine → detects contrast, missing alt images        │
-       │   ✔ NLP Engine → generates alt text, readability improvements   │
-       │   ✔ WCAG Rule Engine → maps issues to guidelines                │
-       │   ✔ Auto-fix Code Engine → generates corrected HTML/CSS         │
-       └───────────────────────────┬──────────────────────────────────────┘
-                                   │
-                                   ▼
-                     ┌───────────────────────────────────┐
-                     │              Database              │
-                     │      (SQLite / MongoDB)           │
-                     │ - Save scans                       │
-                     │ - Reports                          │
-                     │ - Before/After code                │
-                     └───────────────────────────────────┘
-```
+The AI Web Accessibility Validator & Auto-Fixer is a distributed system with multiple entry points and processing pipelines that work together to detect, explain, and fix accessibility issues on web pages.
 
-## User Interface Mockups
-
-### Landing Page
+## Architecture Diagram
 
 ```
- ---------------------------------------------------------
-| AI Web Accessibility Validator & Auto-Fixer             |
-|---------------------------------------------------------|
-|  [ Scan a Website ]     [ Upload HTML File ]            |
-|                                                          |
-|  "Make your website WCAG 2.2 compliant with AI."        |
-|----------------------------------------------------------|
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           USER INTERACTION LAYER                         │
+├──────────────────────┬──────────────────────┬───────────────────────────┤
+│  Browser Extension   │   Web Dashboard      │   CI/CD Integration       │
+│  (Manifest v3)       │   (Next.js/React)    │   (GitHub Actions)        │
+│                      │                      │                           │
+│  - Scan This Page    │  - URL/File Upload   │  - PR Hook                │
+│  - Issue Overlay     │  - Report Viewer     │  - Auto Scan              │
+│  - Quick Apply       │  - Before/After      │  - PR Comment             │
+└──────────┬───────────┴──────────┬──────────┴───────────┬───────────────┘
+           │                      │                       │
+           └──────────────────────┼───────────────────────┘
+                                  │
+                    ┌─────────────▼─────────────┐
+                    │    API GATEWAY (FastAPI)   │
+                    │  - Authentication          │
+                    │  - Rate Limiting           │
+                    │  - Request Routing         │
+                    └─────────────┬─────────────┘
+                                  │
+           ┌──────────────────────┼───────────────────────┐
+           │                      │                       │
+    ┌──────▼──────┐      ┌────────▼────────┐    ┌───────▼────────┐
+    │   SCAN API  │      │   FIX API       │    │  REPORT API    │
+    │  /scan-url  │      │  /auto-fix      │    │  /reports      │
+    │  /scan-html │      │  /batch-fix     │    │  /history      │
+    └──────┬──────┘      └────────┬────────┘    └───────┬────────┘
+           │                      │                       │
+           └──────────────────────┼───────────────────────┘
+                                  │
+        ┌─────────────────────────┼─────────────────────────┐
+        │                         │                         │
+┌───────▼────────┐      ┌─────────▼─────────┐    ┌─────────▼─────────┐
+│ HEADLESS       │      │  RULE ENGINE      │    │  PATCH GENERATOR  │
+│ RUNNER         │      │  (axe-core)       │    │                   │
+│ (Playwright)   │      │                   │    │  - Code Diffs     │
+│                │      │  - WCAG 2.2       │    │  - JS Injection   │
+│ - Render Page  │      │  - Baseline Rules │    │  - GitHub PR      │
+│ - Screenshots  │      │  - DOM Analysis   │    │                   │
+│ - DOM Snapshot │      └─────────┬─────────┘    └─────────┬─────────┘
+│ - Interactions │                │                         │
+└───────┬────────┘                │                         │
+        │                         │                         │
+        └──────────────┬──────────┴──────────┬──────────────┘
+                       │                     │
+        ┌──────────────▼──────────────┐     │
+        │   COMPUTER VISION MODULE    │     │
+        │   (OpenCV/Pillow)           │     │
+        │                             │     │
+        │  - Screenshot Analysis      │     │
+        │  - Contrast Detection       │     │
+        │  - Focus Indicator Detection│     │
+        │  - Layout Overlap Detection │     │
+        └──────────────┬──────────────┘     │
+                       │                     │
+        ┌──────────────▼──────────────┐     │
+        │   NLP/LLM MODULE            │     │
+        │   (GPT-4 Vision / BLIP)     │     │
+        │                             │     │
+        │  - Alt Text Generation      │     │
+        │  - Label Suggestions        │     │
+        │  - Content Simplification   │     │
+        └──────────────┬──────────────┘     │
+                       │                     │
+        ┌──────────────▼──────────────┐     │
+        │   CONTEXT FUSION (AI)       │     │
+        │                             │     │
+        │  - Merge DOM/CV/NLP Results │     │
+        │  - Prioritize Issues        │     │
+        │  - Generate Context-Aware   │     │
+        │    Fixes                    │     │
+        │  - Confidence Scoring       │     │
+        └──────────────┬──────────────┘     │
+                       │                     │
+        ┌──────────────▼──────────────┐     │
+        │   DATA LAYER                │     │
+        │                             │     │
+        │  ┌──────────────────────┐   │     │
+        │  │  PostgreSQL          │   │     │
+        │  │  - Scans             │   │     │
+        │  │  - Issues            │   │     │
+        │  │  - Fixes             │   │     │
+        │  │  - Reports           │   │     │
+        │  └──────────────────────┘   │     │
+        │                             │     │
+        │  ┌──────────────────────┐   │     │
+        │  │  Redis Cache         │   │     │
+        │  │  - Scan Results      │   │     │
+        │  │  - Screenshots       │   │     │
+        │  │  - Rate Limiting     │   │     │
+        │  └──────────────────────┘   │     │
+        └─────────────────────────────┘     │
+                                             │
+                    ┌────────────────────────┘
+                    │
+        ┌───────────▼───────────┐
+        │   GITHUB INTEGRATION  │
+        │                       │
+        │  - OAuth              │
+        │  - PR Creation        │
+        │  - Test Generation    │
+        │  - CI/CD Hooks        │
+        └───────────────────────┘
 ```
 
-### URL Scanner Page
+## Component Details
 
-```
- ---------------------------------------------------------
-| Enter URL to Scan:  [ https://example.com        ] (Scan)
-|---------------------------------------------------------|
-| Loading animation...                                    |
-| "Scanning website for accessibility issues…"            |
- ---------------------------------------------------------
-```
+### 1. User Interaction Layer
 
-### Scan Results Dashboard
+#### Browser Extension (Manifest v3)
+- **Location**: `extension/`
+- **Technology**: Vanilla JavaScript, Chrome Extension API
+- **Responsibilities**:
+  - Scan current page in real-time
+  - Display issue overlays on page
+  - Show issue sidebar
+  - Apply fixes for preview
+  - Generate GitHub PR
 
-```
- ---------------------------------------------------------
-| Accessibility Score:  62/100        WCAG Level: AA      |
-|---------------------------------------------------------|
-| Issues Found: 14                                        |
-|---------------------------------------------------------|
-| 1. Missing Alt Text (5 items)   [Fix All] [View]        |
-| 2. Low Contrast Text (3 items)  [Fix All] [Preview]     |
-| 3. Missing ARIA Roles (2 items) [Show Code]             |
-| 4. Bad Heading Structure         [Auto-Fix]             |
-|---------------------------------------------------------|
-```
+#### Web Dashboard (Next.js/React)
+- **Location**: `app/`
+- **Technology**: Next.js 14, React, TypeScript, Tailwind CSS
+- **Responsibilities**:
+  - URL/file upload interface
+  - Report viewer with filtering
+  - Before/after code comparison
+  - Dashboard with score visualization
+  - Team collaboration features
 
-### Code Comparison View
+#### CI/CD Integration
+- **Location**: `.github/workflows/`
+- **Technology**: GitHub Actions, GitLab CI
+- **Responsibilities**:
+  - Automatic scanning on PR
+  - PR comments with scan results
+  - Block PR if critical issues (optional)
 
-```
- ---------------------------------------------------------
-| BEFORE CODE                      | AFTER AUTO-FIXED      |
-|----------------------------------------------------------|
-| <img src="banner.png">           | <img src="banner.png" |
-|                                  |      alt="Homepage     |
-|                                  |      promotional banner">|
- ---------------------------------------------------------
-```
+### 2. API Gateway (FastAPI)
 
-### Sidebar (Browser Extension)
+- **Location**: `backend/main.py`
+- **Technology**: FastAPI, Python
+- **Endpoints**:
+  - `POST /scan-url` - Scan website URL
+  - `POST /scan-html` - Scan raw HTML/CSS/JS
+  - `POST /upload-file` - Upload and scan file
+  - `POST /auto-fix` - Generate fix for issue
+  - `POST /batch-fix` - Batch fix multiple issues
+  - `GET /reports` - Get scan reports
+  - `GET /wcag-rules` - Get WCAG rules list
+  - `GET /health` - Health check
 
-```
- -----------------------------------------
-| Accessibility Scan Results              |
-|-----------------------------------------|
-| ⚠ Missing Alt Text (3)                  |
-|    - image#hero-banner                  |
-|    - image.product-card                 |
-|-----------------------------------------|
-| ⚠ Low Contrast (2)                      |
-|    - <p id="promo-text">                |
-|-----------------------------------------|
-| [Apply Fixes]   [Download Report]       |
- -----------------------------------------
-```
+### 3. Processing Pipeline
 
-## Component Flow
+#### Headless Runner (Playwright)
+- **Location**: `backend/services/headless_runner.py`
+- **Technology**: Playwright, Python
+- **Responsibilities**:
+  - Full page rendering with JavaScript
+  - Screenshot capture
+  - DOM snapshot
+  - Network idle detection
+  - Interaction simulation (scroll, click, wait)
+  - SPA support
 
-1. **User Input** → Browser Extension or Frontend UI
-2. **API Request** → Backend FastAPI server
-3. **Processing** → AI Engines (Vision, NLP, WCAG Rule Engine)
-4. **Analysis** → Accessibility issues detected
-5. **Fix Generation** → Auto-fix Code Engine generates solutions
-6. **Response** → Frontend displays results
-7. **User Action** → Apply fixes or download report
-8. **Storage** → Save to database (optional)
+#### Rule Engine (axe-core)
+- **Location**: `backend/services/scanner.py`
+- **Technology**: axe-core Python wrapper
+- **Responsibilities**:
+  - WCAG 2.2 compliance checks
+  - DOM structure analysis
+  - Baseline accessibility validation
+  - Issue categorization
+
+#### Computer Vision Module
+- **Location**: `backend/services/vision_analyzer.py`
+- **Technology**: OpenCV, Pillow, NumPy
+- **Responsibilities**:
+  - Screenshot analysis
+  - Color contrast detection on images
+  - Focus indicator detection
+  - Text overlap detection
+  - Layout misalignment detection
+
+#### NLP/LLM Module
+- **Location**: `backend/services/ai_engine.py`
+- **Technology**: GPT-4 Vision, BLIP, Transformers
+- **Responsibilities**:
+  - Context-aware alt text generation
+  - Form label suggestions
+  - Content simplification
+  - Multi-language support
+
+#### Context Fusion (AI)
+- **Location**: `backend/services/context_fusion.py`
+- **Technology**: Python, ML models
+- **Responsibilities**:
+  - Merge DOM/CV/NLP results
+  - Prioritize issues by severity
+  - Generate context-aware fixes
+  - Confidence scoring
+
+#### Patch Generator
+- **Location**: `backend/services/auto_fixer.py`
+- **Technology**: Python, difflib
+- **Responsibilities**:
+  - HTML/CSS/JS diff generation
+  - JS injection script creation
+  - GitHub PR patch format
+  - Component-level fixes (React/Vue)
+
+### 4. Data Layer
+
+#### PostgreSQL Database
+- **Tables**:
+  - `scans` - Scan history
+  - `issues` - Detected issues
+  - `fixes` - Generated fixes
+  - `reports` - User reports
+  - `users` - User accounts
+  - `teams` - Team information
+
+#### Redis Cache
+- **Purpose**:
+  - Cache scan results
+  - Store screenshots temporarily
+  - Rate limiting
+  - Session management
+
+### 5. External Integrations
+
+#### GitHub Integration
+- **Location**: `backend/services/github_integration.py`
+- **Technology**: GitHub API, OAuth
+- **Features**:
+  - OAuth authentication
+  - PR creation with patches
+  - Auto-generated tests (Jest + axe)
+  - CI/CD hooks
 
 ## Data Flow
 
-```
-User Input (URL/HTML)
-    ↓
-Frontend/Extension
-    ↓
-REST API Call
-    ↓
-Backend Processing
-    ├─→ HTML Parser (BeautifulSoup)
-    ├─→ Vision Engine (Contrast Analysis)
-    ├─→ NLP Engine (Alt Text Generation)
-    ├─→ WCAG Rule Engine (Compliance Check)
-    └─→ Auto-fix Engine (Code Generation)
-    ↓
-Structured JSON Response
-    ↓
-Frontend Display
-    ├─→ Results Dashboard
-    ├─→ Code Comparison
-    └─→ Fix Suggestions
-    ↓
-User Action
-    ├─→ Apply Fixes
-    ├─→ Download Report
-    └─→ Save to Database
-```
+### Scan Request Flow
 
-## Technology Stack
+1. **User initiates scan** (extension/dashboard/CI)
+2. **API Gateway** receives request
+3. **Headless Runner** renders page and captures screenshots
+4. **Rule Engine** runs axe-core checks
+5. **Computer Vision** analyzes screenshots
+6. **NLP/LLM** generates suggestions
+7. **Context Fusion** merges results and prioritizes
+8. **Patch Generator** creates fixes
+9. **Results stored** in database and cache
+10. **Response sent** to user
 
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **Backend**: FastAPI, Python 3.8+
-- **Browser Extension**: Manifest V3, Vanilla JavaScript
-- **AI/ML**: Transformers, OpenCV, NLP libraries
-- **Database**: SQLite (development), MongoDB (production ready)
-- **Deployment**: Vercel (frontend), Railway/Heroku (backend)
+### Fix Application Flow
 
+1. **User reviews fix** in dashboard
+2. **User approves/rejects** fix
+3. **Patch Generator** creates final patch
+4. **User chooses** application method:
+   - Browser injection (preview)
+   - GitHub PR creation
+   - Manual copy-paste
+5. **GitHub Integration** creates PR if selected
+6. **Results tracked** in database
+
+## Security Architecture
+
+### Authentication
+- OAuth 2.0 for GitHub/GitLab
+- JWT tokens for API authentication
+- Session management via Redis
+
+### Authorization
+- Role-based access control (RBAC)
+- Team-based permissions
+- Repository access with least privilege
+
+### Data Protection
+- Encryption at rest (database)
+- Encryption in transit (HTTPS/TLS)
+- PII masking in logs
+- Secure credential storage
+
+### Privacy
+- Self-hosted option (no external APIs)
+- User consent for AI features
+- Data anonymization
+- GDPR compliance
+
+## Scalability
+
+### Horizontal Scaling
+- API Gateway: Multiple FastAPI instances (load balanced)
+- Processing: Queue-based task distribution (Celery/RQ)
+- Database: PostgreSQL with read replicas
+- Cache: Redis cluster
+
+### Performance Optimization
+- Result caching (Redis)
+- Async processing (async/await)
+- Screenshot optimization (compression)
+- Database query optimization
+
+### Monitoring
+- Application metrics (Prometheus)
+- Logging (ELK stack)
+- Error tracking (Sentry)
+- Performance monitoring (APM)
+
+## Deployment
+
+### Development
+- Local development with Docker Compose
+- Hot reload for frontend/backend
+- Mock services for AI features
+
+### Production
+- Docker containers
+- Kubernetes orchestration
+- CI/CD pipelines
+- Blue-green deployments
+
+### Self-Hosted
+- Docker Compose setup
+- All components containerized
+- Optional external services
+- Documentation for deployment
+
+---
+
+**Last Updated**: 2024
+**Version**: 1.0

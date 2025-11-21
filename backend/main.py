@@ -30,15 +30,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize services
-scanner = AccessibilityScanner()
-ai_engine = AIEngine()
-auto_fixer = AutoFixer()
+# Initialize services (lazy initialization to handle import errors)
+scanner = None
+ai_engine = None
+auto_fixer = None
+
+def get_scanner():
+    """Lazy load scanner to handle import errors gracefully"""
+    global scanner
+    if scanner is None:
+        scanner = AccessibilityScanner()
+    return scanner
+
+def get_ai_engine():
+    """Lazy load AI engine to handle import errors gracefully"""
+    global ai_engine
+    if ai_engine is None:
+        ai_engine = AIEngine()
+    return ai_engine
+
+def get_auto_fixer():
+    """Lazy load auto fixer to handle import errors gracefully"""
+    global auto_fixer
+    if auto_fixer is None:
+        auto_fixer = AutoFixer()
+    return auto_fixer
 
 
 # Pydantic models for request/response
 class ScanURLRequest(BaseModel):
-    url: HttpUrl
+    url: str  # Changed to str for better compatibility
 
 
 class ScanHTMLRequest(BaseModel):
@@ -98,15 +119,18 @@ async def scan_url(request: ScanURLRequest):
     try:
         url = str(request.url)
         
+        # Get scanner instance
+        scanner_instance = get_scanner()
+        
         # Fetch and parse the website
-        html_content, css_content, js_content = await scanner.fetch_website(url)
+        html_content, css_content, js_content = await scanner_instance.fetch_website(url)
         
         # Run comprehensive accessibility scan
-        issues = await scanner.scan_comprehensive(html_content, css_content, js_content, url)
+        issues = await scanner_instance.scan_comprehensive(html_content, css_content, js_content, url)
         
         # Calculate score and WCAG level
-        score = scanner.calculate_accessibility_score(issues)
-        wcag_level = scanner.determine_wcag_level(issues)
+        score = scanner_instance.calculate_accessibility_score(issues)
+        wcag_level = scanner_instance.determine_wcag_level(issues)
         
         return ScanResponse(
             success=True,
@@ -129,8 +153,11 @@ async def scan_html(request: ScanHTMLRequest):
     Output: Structured JSON report of issues
     """
     try:
+        # Get scanner instance
+        scanner_instance = get_scanner()
+        
         # Run comprehensive accessibility scan
-        issues = await scanner.scan_comprehensive(
+        issues = await scanner_instance.scan_comprehensive(
             request.html,
             request.css or "",
             request.js or "",
@@ -138,8 +165,8 @@ async def scan_html(request: ScanHTMLRequest):
         )
         
         # Calculate score and WCAG level
-        score = scanner.calculate_accessibility_score(issues)
-        wcag_level = scanner.determine_wcag_level(issues)
+        score = scanner_instance.calculate_accessibility_score(issues)
+        wcag_level = scanner_instance.determine_wcag_level(issues)
         
         return ScanResponse(
             success=True,
@@ -164,11 +191,14 @@ async def upload_html_file(file: UploadFile = File(...)):
         content = await file.read()
         html_content = content.decode('utf-8')
         
-        # Run scan
-        issues = await scanner.scan_comprehensive(html_content, "", "", file.filename)
+        # Get scanner instance
+        scanner_instance = get_scanner()
         
-        score = scanner.calculate_accessibility_score(issues)
-        wcag_level = scanner.determine_wcag_level(issues)
+        # Run scan
+        issues = await scanner_instance.scan_comprehensive(html_content, "", "", file.filename)
+        
+        score = scanner_instance.calculate_accessibility_score(issues)
+        wcag_level = scanner_instance.determine_wcag_level(issues)
         
         return ScanResponse(
             success=True,
@@ -190,7 +220,8 @@ async def auto_fix_issue(request: FixRequest):
     Output: Fixed code with explanation
     """
     try:
-        fix_result = await auto_fixer.generate_fix(
+        fixer_instance = get_auto_fixer()
+        fix_result = await fixer_instance.generate_fix(
             issue_type=request.issue_type,
             element_selector=request.element_selector,
             original_code=request.original_code,
@@ -219,7 +250,8 @@ async def batch_fix_issues(issues: List[FixRequest]):
     try:
         results = []
         for issue in issues:
-            fix_result = await auto_fixer.generate_fix(
+            fixer_instance = get_auto_fixer()
+            fix_result = await fixer_instance.generate_fix(
                 issue_type=issue.issue_type,
                 element_selector=issue.element_selector,
                 original_code=issue.original_code,
@@ -240,8 +272,9 @@ async def batch_fix_issues(issues: List[FixRequest]):
 @app.get("/wcag-rules")
 async def get_wcag_rules():
     """Get list of all WCAG 2.2 rules that are being checked"""
+    scanner_instance = get_scanner()
     return {
-        "rules": scanner.get_wcag_rules(),
+        "rules": scanner_instance.get_wcag_rules(),
         "version": "2.2"
     }
 
