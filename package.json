@@ -11,18 +11,23 @@
     "start:all": "concurrently \"npm run dev\" \"npm run backend\""
   },
   "dependencies": {
+    "@types/dompurify": "^3.0.5",
     "axios": "^1.6.7",
+    "diff": "^8.0.2",
+    "dompurify": "^3.3.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.344.0",
     "next": "^14.2.5",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "recharts": "^3.4.1"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.22",
+    "critters": "^0.0.23",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.5",
     "postcss": "^8.5.6",

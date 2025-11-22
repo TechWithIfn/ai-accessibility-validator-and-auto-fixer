@@ -1,143 +1,107 @@
-# Quick Start Guide - Fix Backend Connection Issue
+# ⚡ Quick Start Guide
 
-## 🚨 Problem
-**Error**: "Failed to scan URL. Make sure the backend is running."
+## 🎯 Common Problems
 
-## ✅ Solution - Step by Step
+### Problem 1: "Failed to scan code. No response from server"
+This means the **backend server is not running**.
+
+### Problem 2: "ChunkLoadError: Loading chunk app/layout failed"
+This means the **frontend needs to be restarted with a clean cache**.
+
+## ✅ The Solution (3 Simple Steps)
 
 ### Step 1: Start Backend Server
 
-**Option A - Windows Batch File (Easiest):**
-1. Navigate to the `backend` folder
-2. Double-click `start_server.bat`
-3. Wait for server to start (you'll see "Server starting on http://localhost:8000")
+**Open PowerShell/Terminal and run:**
 
-**Option B - PowerShell:**
 ```powershell
-cd backend
-.\venv\Scripts\activate
-python main.py
+.\START_BACKEND.ps1
 ```
 
-**Option C - Python Direct:**
+**OR manually:**
+
 ```powershell
 cd backend
-python main.py
+.\venv\Scripts\Activate.ps1
+python simple_server.py
 ```
 
-### Step 2: Verify Backend is Running
+**Wait for this message:**
+```
+🚀 Starting AI Accessibility Validator Backend
+📍 Server: http://localhost:8000
+```
 
-1. Open your browser
-2. Go to: `http://localhost:8000/health`
-3. You should see: `{"status": "healthy", "service": "accessibility-validator"}`
+### Step 2: Start Frontend Server
 
-### Step 3: Start Frontend (if not already running)
+**Open a NEW PowerShell/Terminal window and run:**
 
-```bash
+```powershell
+.\START_FRONTEND.ps1
+```
+
+**OR manually (if you see ChunkLoadError):**
+
+```powershell
+# Clear cache first
+Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
 npm run dev
 ```
 
-The frontend should be at: `http://localhost:3000`
+**Wait for this message:**
+```
+▲ Next.js ready
+- Local: http://localhost:3000
+```
 
-### Step 4: Test the Scanner
+### Step 3: Refresh Your Browser
 
-1. Go to `http://localhost:3000/scanner`
-2. Check top-right corner - should show "🟢 Backend Online"
-3. Enter a URL (e.g., `https://example.com`)
-4. Click "Scan Website"
+1. Go to http://localhost:3000
+2. Press `F5` or click refresh
+3. The error should be gone! ✅
 
-## 🔧 Troubleshooting
+## 🔍 How to Verify It's Working
 
-### Backend Won't Start
+1. **Check Backend**: Open http://localhost:8000/health
+   - Should show: `{"status":"healthy"}`
 
-**Issue**: Python not found
-**Solution**: 
-- Install Python 3.8+ from python.org
-- Make sure to check "Add Python to PATH" during installation
+2. **Check Frontend**: Open http://localhost:3000
+   - Should show dashboard with "Backend Online" indicator
 
-**Issue**: Dependencies missing
-**Solution**:
+3. **Test Scan**: Go to Scanner page → Enter URL → Click Scan
+   - Should work without errors!
+
+## ⚠️ Common Issues
+
+### Issue: "Port 8000 already in use"
+**Fix**: Kill the process using port 8000:
+```powershell
+netstat -ano | Select-String ":8000"
+Stop-Process -Id <PID> -Force
+```
+
+### Issue: "Cannot find module"
+**Fix**: Install dependencies:
+```powershell
+npm install
+```
+
+### Issue: Backend won't start
+**Fix**: Install Python dependencies:
 ```powershell
 cd backend
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+.\venv\Scripts\Activate.ps1
+pip install fastapi uvicorn beautifulsoup4 httpx lxml
+python simple_server.py
 ```
 
-**Issue**: Port 8000 already in use
-**Solution**: 
-- Close other applications using port 8000
-- Or change port in `backend/main.py` (line 250):
-  ```python
-  uvicorn.run(app, host="0.0.0.0", port=8001)  # Change to 8001
-  ```
-- Update `app/scanner/page.tsx` line 8:
-  ```typescript
-  const API_BASE_URL = 'http://localhost:8001';
-  ```
+## 📝 Remember
 
-### Backend Status Shows Offline
-
-1. **Check if backend is actually running:**
-   - Open browser: `http://localhost:8000/health`
-   - Should show: `{"status": "healthy"}`
-
-2. **Check backend logs:**
-   - Look at the terminal where backend is running
-   - Check for any error messages
-
-3. **Check firewall:**
-   - Windows Firewall might be blocking port 8000
-   - Allow Python through firewall
-
-### Still Not Working?
-
-1. **Verify backend is running:**
-   ```powershell
-   # Test with PowerShell
-   Invoke-RestMethod -Uri "http://localhost:8000/health"
-   ```
-
-2. **Check backend logs for errors**
-
-3. **Verify CORS is enabled** (already done in main.py)
-
-4. **Try restarting both frontend and backend**
-
-## 📝 Manual Start (Detailed)
-
-### Backend:
-```powershell
-# 1. Navigate to backend folder
-cd C:\Users\Irfan\Desktop\ai-accessibility-validator-and-auto-fixer\backend
-
-# 2. Activate virtual environment (if exists)
-.\venv\Scripts\activate
-
-# 3. Install dependencies (if needed)
-pip install fastapi uvicorn
-
-# 4. Start server
-python main.py
-```
-
-### Frontend:
-```bash
-# In a separate terminal
-npm run dev
-```
-
-## ✅ Success Indicators
-
-When everything is working:
-- ✅ Backend terminal shows: "Application startup complete"
-- ✅ Browser shows: `http://localhost:8000/health` returns `{"status": "healthy"}`
-- ✅ Frontend shows: "🟢 Backend Online" in scanner page
-- ✅ Scanning a URL works without errors
+- **Backend must run FIRST** before frontend
+- **Keep both terminals open** while using the app
+- **Backend runs on port 8000**
+- **Frontend runs on port 3000**
 
 ---
 
-**Need Help?**
-- Check `START_BACKEND.md` for detailed instructions
-- Check backend terminal for error messages
-- Verify Python version: `python --version` (should be 3.8+)
-
+**Need more help?** See `PROJECT_SETUP_COMPLETE.md` for detailed troubleshooting.
