@@ -51,7 +51,7 @@ export default function GitHubIntegrationPage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">1. Install GitHub App</h3>
               <ol className="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
                 <li>Go to GitHub Settings → Integrations</li>
-                <li>Click "Install GitHub App"</li>
+                <li>Click &quot;Install GitHub App&quot;</li>
                 <li>Select repositories to enable</li>
                 <li>Authorize the installation</li>
               </ol>
@@ -78,7 +78,7 @@ jobs:
       - name: Run Accessibility Scan
         uses: a11y-validator/github-action@v1
         with:
-          api-key: ${{ secrets.A11Y_API_KEY }}
+          api-key: \$\{\{ secrets.A11Y_API_KEY \}\}
           fail-on-errors: true`}
                 </pre>
               </div>
@@ -88,7 +88,7 @@ jobs:
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">3. Add API Key Secret</h3>
               <ol className="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
                 <li>Go to Repository Settings → Secrets → Actions</li>
-                <li>Click "New repository secret"</li>
+                <li>Click &quot;New repository secret&quot;</li>
                 <li>Name: <code className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">A11Y_API_KEY</code></li>
                 <li>Value: Your API key from the dashboard</li>
               </ol>
