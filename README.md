@@ -10,6 +10,12 @@ A complete system that scans any website URL, detects accessibility issues (WCAG
 - **Browser Extension**: Scan pages directly from your browser
 - **Developer Dashboard**: Beautiful React dashboard for managing scans and reports
 - **Real-time Analysis**: Fast, real-time accessibility analysis
+- **User Privacy**: Secure, user-isolated reports with authentication
+- **Advanced Filtering**: Filter by severity, score, domain, date, and issue count
+- **Smart Search**: Instant domain search with debounced results
+- **Accessibility Compliant UI**: WCAG 2.2 compliant interface with full keyboard navigation
+
+> 📚 **See [FEATURES_IMPLEMENTATION.md](./FEATURES_IMPLEMENTATION.md) for complete feature documentation**
 
 ## 📁 Project Structure
 

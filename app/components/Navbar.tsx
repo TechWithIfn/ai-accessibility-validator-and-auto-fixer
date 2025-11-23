@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Scan, FileText, Code, Users, Settings, Moon, Sun } from 'lucide-react';
+import { Home, Scan, FileText, Code, Users, Settings, Moon, Sun, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -10,6 +10,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [darkMode, setDarkMode] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Check for saved theme preference or default to light mode
@@ -26,6 +27,11 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
@@ -35,7 +41,7 @@ export default function Navbar() {
 
   const navItems = [
     { href: '/', label: 'Home', icon: Home },
-    { href: '/scanner', label: 'URL Scanner', icon: Scan },
+    { href: '/scanner', label: 'Scanner', icon: Scan },
     { href: '/reports', label: 'Reports', icon: FileText },
     { href: '/compare', label: 'Compare', icon: Code },
     { href: '/team', label: 'Team', icon: Users },
@@ -56,48 +62,56 @@ export default function Navbar() {
       aria-label="Main navigation"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-xl font-bold font-display gradient-text dark:gradient-text-dark">
-                AI Accessibility Validator
-              </Link>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`inline-flex items-center px-1 pt-1 text-sm font-medium transition-all ${
-                      isActive
-                        ? 'border-b-2 border-primary-500 text-gray-900 dark:text-gray-100'
-                        : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 hover:border-b-2 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                    aria-current={isActive ? 'page' : undefined}
-                  >
-                    <Icon className="w-4 h-4 mr-1" aria-hidden="true" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link href="/" className="text-lg sm:text-xl font-bold font-display gradient-text dark:gradient-text-dark">
+              <span className="hidden sm:inline">AI Accessibility Validator</span>
+              <span className="sm:hidden">AI A11y</span>
+            </Link>
           </div>
-          <div className="flex items-center space-x-4">
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex md:items-center md:space-x-1 lg:space-x-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`inline-flex items-center px-2 lg:px-3 py-2 text-sm font-medium transition-all rounded-lg ${
+                    isActive
+                      ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <Icon className="w-4 h-4 mr-1.5" aria-hidden="true" />
+                  <span className="hidden lg:inline">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Right Side Actions */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Scan Button - Hidden on mobile, visible on tablet+ */}
             <Link
               href="/scanner"
-              className="hidden md:flex items-center px-4 py-2 bg-gradient-hero text-white rounded-lg hover:opacity-90 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 shadow-lg hover:shadow-xl"
+              className="hidden sm:flex items-center px-3 lg:px-4 py-2 bg-gradient-hero text-white rounded-lg hover:opacity-90 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 shadow-lg hover:shadow-xl text-sm font-medium"
             >
-              <Scan className="w-4 h-4 mr-2" aria-hidden="true" />
-              Scan Now
+              <Scan className="w-4 h-4 mr-1.5" aria-hidden="true" />
+              <span className="hidden lg:inline">Scan Now</span>
+              <span className="lg:hidden">Scan</span>
             </Link>
+
+            {/* Dark Mode Toggle */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={toggleDarkMode}
-              className="p-2 rounded-md text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+              className="p-2 rounded-lg text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
               aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               <AnimatePresence mode="wait">
@@ -124,35 +138,66 @@ export default function Navbar() {
                 )}
               </AnimatePresence>
             </motion.button>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+              aria-label="Toggle mobile menu"
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      <div className="sm:hidden">
-        <div className="pt-2 pb-3 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return (
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+          >
+            <div className="px-4 pt-2 pb-4 space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center px-3 py-2.5 text-base font-medium rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <Icon className="w-5 h-5 mr-3" aria-hidden="true" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+              {/* Mobile Scan Button */}
               <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center pl-3 pr-4 py-2 text-base font-medium ${
-                  isActive
-                    ? 'bg-primary-50 dark:bg-primary-900 border-primary-500 text-primary-700 dark:text-primary-300'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-                aria-current={isActive ? 'page' : undefined}
+                href="/scanner"
+                className="flex items-center justify-center px-4 py-2.5 mt-2 bg-gradient-hero text-white rounded-lg hover:opacity-90 transition-all font-medium"
               >
-                <Icon className="w-5 h-5 mr-3" aria-hidden="true" />
-                {item.label}
+                <Scan className="w-5 h-5 mr-2" aria-hidden="true" />
+                Scan Now
               </Link>
-            );
-          })}
-        </div>
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 }
-

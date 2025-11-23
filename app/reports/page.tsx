@@ -1,167 +1,603 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { FileText, Calendar, TrendingUp, AlertCircle, Download, Eye } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { 
+  FileText, Calendar, TrendingUp, TrendingDown, AlertCircle, Download, 
+  Eye, Search, Filter, MoreVertical, RefreshCw, Trash2, ExternalLink,
+  ChevronDown, X, ArrowUpDown, CheckCircle2, Clock, BarChart3
+} from 'lucide-react';
 import Link from 'next/link';
+import axios from 'axios';
 
-// Mock data - in production, fetch from API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+// Enhanced mock data with more details
 const mockReports = [
   {
     id: '1',
     url: 'https://example.com',
-    date: '2024-01-15',
+    domain: 'example.com',
+    date: '2024-01-15T10:30:00Z',
     score: 85.5,
+    previousScore: 82.0,
     total_issues: 12,
     wcag_level: 'AA',
     severity_breakdown: { high: 3, medium: 6, low: 3 },
+    topIssues: [
+      { type: 'Missing alt text', count: 5 },
+      { type: 'Low contrast', count: 4 },
+      { type: 'Missing labels', count: 3 }
+    ],
+    scanDuration: 45,
+    lastScanned: '2 hours ago'
   },
   {
     id: '2',
     url: 'https://demo-site.com',
-    date: '2024-01-14',
+    domain: 'demo-site.com',
+    date: '2024-01-14T14:20:00Z',
     score: 92.0,
+    previousScore: 88.5,
     total_issues: 5,
     wcag_level: 'AAA',
     severity_breakdown: { high: 1, medium: 2, low: 2 },
+    topIssues: [
+      { type: 'Minor contrast', count: 2 },
+      { type: 'Heading order', count: 1 },
+      { type: 'ARIA labels', count: 2 }
+    ],
+    scanDuration: 32,
+    lastScanned: '1 day ago'
   },
 ];
 
+type SortOption = 'date-desc' | 'date-asc' | 'score-desc' | 'score-asc' | 'issues-desc' | 'issues-asc' | 'domain-asc';
+type FilterSeverity = 'all' | 'high' | 'medium' | 'low';
+
 export default function ReportsPage() {
   const [reports, setReports] = useState(mockReports);
+  const [filteredReports, setFilteredReports] = useState(mockReports);
   const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+  const [severityFilter, setSeverityFilter] = useState<FilterSeverity>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showMenu, setShowMenu] = useState<string | null>(null);
+
+  // Simulate user authentication (in production, get from auth context)
+  const [isAuthenticated] = useState(true);
+  const [userId] = useState('user-123'); // In production, get from auth
 
   useEffect(() => {
-    // In production: Fetch reports from API
+    // In production: Fetch reports from API with user authentication
     // const fetchReports = async () => {
-    //   const response = await axios.get(`${API_BASE_URL}/reports`);
-    //   setReports(response.data);
+    //   setIsLoading(true);
+    //   try {
+    //     const token = localStorage.getItem('authToken');
+    //     const response = await axios.get(`${API_BASE_URL}/reports`, {
+    //       headers: { Authorization: `Bearer ${token}` },
+    //       params: { userId }
+    //     });
+    //     setReports(response.data);
+    //   } catch (error) {
+    //     console.error('Failed to fetch reports:', error);
+    //   } finally {
+    //     setIsLoading(false);
+    //   }
     // };
     // fetchReports();
-  }, []);
+  }, [userId]);
+
+  // Filter and sort reports
+  useEffect(() => {
+    let filtered = [...reports];
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(report => 
+        report.domain.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        report.url.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Severity filter
+    if (severityFilter !== 'all') {
+      filtered = filtered.filter(report => 
+        report.severity_breakdown[severityFilter] > 0
+      );
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        case 'date-asc':
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        case 'score-desc':
+          return b.score - a.score;
+        case 'score-asc':
+          return a.score - b.score;
+        case 'issues-desc':
+          return b.total_issues - a.total_issues;
+        case 'issues-asc':
+          return a.total_issues - b.total_issues;
+        case 'domain-asc':
+          return a.domain.localeCompare(b.domain);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredReports(filtered);
+  }, [reports, searchQuery, sortBy, severityFilter]);
 
   const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600 dark:text-green-400';
-    if (score >= 70) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
+    if (score >= 90) return { text: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/30', ring: 'ring-green-500/20' };
+    if (score >= 70) return { text: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/30', ring: 'ring-yellow-500/20' };
+    return { text: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/30', ring: 'ring-red-500/20' };
   };
 
+  const getScoreTrend = (current: number, previous?: number) => {
+    if (!previous) return null;
+    const diff = current - previous;
+    if (diff > 0) return { icon: TrendingUp, color: 'text-green-500', text: `+${diff.toFixed(1)}` };
+    if (diff < 0) return { icon: TrendingDown, color: 'text-red-500', text: diff.toFixed(1) };
+    return null;
+  };
+
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
+
+  const handleExport = async (reportId: string, format: 'pdf' | 'csv' | 'json') => {
+    // In production: Call API to export report
+    console.log(`Exporting report ${reportId} as ${format}`);
+    // const response = await axios.get(`${API_BASE_URL}/reports/${reportId}/export?format=${format}`, {
+    //   responseType: 'blob'
+    // });
+    // Download file
+  };
+
+  const handleDelete = async (reportId: string) => {
+    if (!confirm('Are you sure you want to delete this report?')) return;
+    // In production: Call API to delete
+    setReports(reports.filter(r => r.id !== reportId));
+    setShowMenu(null);
+  };
+
+  const handleRescan = async (url: string) => {
+    // In production: Trigger new scan
+    console.log(`Rescanning ${url}`);
+    setShowMenu(null);
+  };
+
+  // Empty state for authenticated users with no reports
+  if (isAuthenticated && reports.length === 0 && !isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 text-center border border-gray-200 dark:border-gray-700">
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900/30 dark:to-primary-800/30 flex items-center justify-center">
+            <FileText className="w-12 h-12 text-primary-600 dark:text-primary-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">No Reports Yet</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
+            Start scanning websites to generate your first accessibility report. Get detailed insights and automatic fix suggestions.
+          </p>
+          <Link
+            href="/scanner"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          >
+            <BarChart3 className="w-5 h-5" />
+            Run Your First Scan
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 px-4 sm:px-6 lg:px-8 pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Accessibility Reports</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-300">View and manage your accessibility scan reports</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Accessibility Reports</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">
+            View and manage your accessibility scan reports
+            {filteredReports.length !== reports.length && (
+              <span className="ml-2 text-sm text-primary-600 dark:text-primary-400">
+                ({filteredReports.length} of {reports.length} shown)
+              </span>
+            )}
+          </p>
         </div>
         <Link
           href="/scanner"
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
         >
+          <BarChart3 className="w-5 h-5" />
           New Scan
+          <ExternalLink className="w-4 h-4" />
         </Link>
       </div>
 
-      {/* Reports Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {reports.map((report) => (
-          <div
-            key={report.id}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => setSelectedReport(report)}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <FileText className="w-8 h-8 text-primary-600 dark:text-primary-400" aria-hidden="true" />
-              <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-xs rounded text-gray-600 dark:text-gray-400">
-                {report.wcag_level}
-              </span>
-            </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2 truncate">{report.url}</h3>
-            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-              <Calendar className="w-4 h-4 mr-1" aria-hidden="true" />
-              {new Date(report.date).toLocaleDateString()}
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Score</span>
-                <span className={`text-2xl font-bold ${getScoreColor(report.score)}`}>
-                  {report.score.toFixed(1)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Issues</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{report.total_issues}</span>
-              </div>
-              <div className="flex space-x-2 mt-2">
-                <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
-                  {report.severity_breakdown.high} High
-                </span>
-                <span className="text-xs px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded">
-                  {report.severity_breakdown.medium} Medium
-                </span>
-                <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
-                  {report.severity_breakdown.low} Low
-                </span>
-              </div>
-            </div>
-            <button className="mt-4 w-full text-primary-600 dark:text-primary-400 hover:underline text-sm font-medium flex items-center justify-center">
-              View Details
-              <Eye className="w-4 h-4 ml-1" aria-hidden="true" />
-            </button>
+      {/* Search and Filters Bar */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by domain or report ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              aria-label="Search reports"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
-        ))}
+
+          {/* Filter Toggle */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
+                showFilters || severityFilter !== 'all'
+                  ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                  : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
+              aria-label="Toggle filters"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+              {(severityFilter !== 'all') && (
+                <span className="bg-primary-600 text-white text-xs px-2 py-0.5 rounded-full">
+                  1
+                </span>
+              )}
+            </button>
+
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="appearance-none pl-4 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+                aria-label="Sort reports"
+              >
+                <option value="date-desc">Latest First</option>
+                <option value="date-asc">Oldest First</option>
+                <option value="score-desc">Highest Score</option>
+                <option value="score-asc">Lowest Score</option>
+                <option value="issues-desc">Most Issues</option>
+                <option value="issues-asc">Fewest Issues</option>
+                <option value="domain-asc">Domain A-Z</option>
+              </select>
+              <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* Expanded Filters */}
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex flex-wrap gap-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 py-2">Severity:</span>
+              {(['all', 'high', 'medium', 'low'] as FilterSeverity[]).map((severity) => (
+                <button
+                  key={severity}
+                  onClick={() => setSeverityFilter(severity)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    severityFilter === severity
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {severity === 'all' ? 'All' : severity.charAt(0).toUpperCase() + severity.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Empty State */}
-      {reports.length === 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-          <FileText className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" aria-hidden="true" />
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Reports Yet</h3>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">Start by scanning a website to generate your first accessibility report.</p>
-          <Link
-            href="/scanner"
-            className="inline-flex items-center bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-          >
-            Scan a Website
-          </Link>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Report Detail Modal (simplified) */}
+      {/* Reports Grid */}
+      {!isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredReports.map((report) => {
+            const scoreColors = getScoreColor(report.score);
+            const trend = getScoreTrend(report.score, report.previousScore);
+            const TrendIcon = trend?.icon;
+
+            return (
+              <div
+                key={report.id}
+                className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-300 transform hover:-translate-y-1 relative"
+              >
+                {/* Menu Button */}
+                <div className="absolute top-4 right-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(showMenu === report.id ? null : report.id);
+                    }}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    aria-label="More options"
+                  >
+                    <MoreVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  </button>
+                  {showMenu === report.id && (
+                    <div className="absolute right-0 top-12 z-10 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+                      <button
+                        onClick={() => handleRescan(report.url)}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Re-Scan
+                      </button>
+                      <button
+                        onClick={() => setSelectedReport(report)}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View Full Report
+                      </button>
+                      <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                      <button
+                        onClick={() => handleDelete(report.id)}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete Report
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg">
+                      <FileText className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <a
+                        href={report.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {report.domain}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${scoreColors.bg} ${scoreColors.text}`}>
+                          WCAG {report.wcag_level}
+                        </span>
+                        {trend && TrendIcon && (
+                          <span className={`flex items-center gap-1 text-xs font-medium ${trend.color}`}>
+                            <TrendIcon className="w-3 h-3" />
+                            {trend.text}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Score with Progress Ring */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Accessibility Score</span>
+                    <span className={`text-3xl font-bold ${scoreColors.text}`}>
+                      {report.score.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${scoreColors.bg} transition-all duration-500`}
+                      style={{ width: `${report.score}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                    <div className="text-xl font-bold text-red-600 dark:text-red-400">{report.severity_breakdown.high}</div>
+                    <div className="text-xs text-red-700 dark:text-red-300 mt-1">High</div>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                    <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{report.severity_breakdown.medium}</div>
+                    <div className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">Medium</div>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{report.severity_breakdown.low}</div>
+                    <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">Low</div>
+                  </div>
+                </div>
+
+                {/* Top Issues Preview */}
+                {report.topIssues && report.topIssues.length > 0 && (
+                  <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Top Issues:</div>
+                    <div className="space-y-1">
+                      {report.topIssues.slice(0, 3).map((issue, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-700 dark:text-gray-300 truncate">{issue.type}</span>
+                          <span className="text-gray-500 dark:text-gray-400 font-medium ml-2">{issue.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <Clock className="w-3 h-3" />
+                    <span>{formatRelativeTime(report.date)}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {report.total_issues} {report.total_issues === 1 ? 'issue' : 'issues'}
+                  </div>
+                </div>
+
+                {/* View Details Button */}
+                <button
+                  onClick={() => setSelectedReport(report)}
+                  className="mt-4 w-full py-2.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-lg font-medium hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors flex items-center justify-center gap-2"
+                  aria-label={`View details for ${report.domain}`}
+                >
+                  <Eye className="w-4 h-4" />
+                  View Details
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Empty Search Results */}
+      {!isLoading && filteredReports.length === 0 && reports.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+          <Search className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Reports Found</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Try adjusting your search or filters to find what you're looking for.
+          </p>
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setSeverityFilter('all');
+            }}
+            className="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+          >
+            Clear all filters
+          </button>
+        </div>
+      )}
+
+      {/* Report Detail Modal */}
       {selectedReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setSelectedReport(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in"
+          onClick={() => setSelectedReport(null)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Report Details</h2>
               <button
                 onClick={() => setSelectedReport(null)}
-                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                aria-label="Close"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Close modal"
               >
-                ×
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="p-6 space-y-6">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">URL</p>
-                <p className="text-gray-900 dark:text-white font-medium">{selectedReport.url}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Website URL</p>
+                <a
+                  href={selectedReport.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-2"
+                >
+                  {selectedReport.url}
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Last Scanned</p>
+                  <p className="text-gray-900 dark:text-white">{formatRelativeTime(selectedReport.date)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Scan Duration</p>
+                  <p className="text-gray-900 dark:text-white">{selectedReport.scanDuration}s</p>
+                </div>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Date</p>
-                <p className="text-gray-900 dark:text-white font-medium">{new Date(selectedReport.date).toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Accessibility Score</p>
-                <p className={`text-3xl font-bold ${getScoreColor(selectedReport.score)}`}>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Accessibility Score</p>
+                <div className={`text-4xl font-bold ${getScoreColor(selectedReport.score).text} mb-2`}>
                   {selectedReport.score.toFixed(1)}/100
-                </p>
+                </div>
+                {(() => {
+                  const modalTrend = getScoreTrend(selectedReport.score, selectedReport.previousScore);
+                  const ModalTrendIcon = modalTrend?.icon;
+                  return modalTrend && ModalTrendIcon && (
+                    <div className={`flex items-center gap-2 text-sm ${modalTrend.color}`}>
+                      <ModalTrendIcon className="w-4 h-4" />
+                      <span>Score {parseFloat(modalTrend.text) > 0 ? 'improved' : 'decreased'} from previous scan</span>
+                    </div>
+                  );
+                })()}
               </div>
-              <div className="flex space-x-4">
-                <button className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                  <Download className="w-4 h-4 mr-2" aria-hidden="true" />
-                  Download PDF
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleExport(selectedReport.id, 'pdf')}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Export PDF
+                </button>
+                <button
+                  onClick={() => handleExport(selectedReport.id, 'csv')}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => handleExport(selectedReport.id, 'json')}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Export JSON
                 </button>
                 <Link
                   href={`/compare?report=${selectedReport.id}`}
-                  className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
                   Compare
                 </Link>
@@ -173,4 +609,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-

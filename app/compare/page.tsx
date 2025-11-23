@@ -519,7 +519,7 @@ export default function ComparePage() {
                     <li>Open a new terminal/PowerShell window</li>
                     <li>Navigate to the backend directory: <code className="bg-red-100 dark:bg-red-900/30 px-1 rounded">cd backend</code></li>
                     <li>Run: <code className="bg-red-100 dark:bg-red-900/30 px-1 rounded">start_server.bat</code> (Windows) or <code className="bg-red-100 dark:bg-red-900/30 px-1 rounded">python main.py</code></li>
-                    <li>Wait for "Application startup complete" message</li>
+                    <li>Wait for &quot;Application startup complete&quot; message</li>
                     <li>Then refresh this page</li>
                   </ol>
                   <p className="text-xs text-red-700 dark:text-red-400 mt-2">
