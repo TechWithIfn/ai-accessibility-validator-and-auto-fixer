@@ -162,13 +162,200 @@ export default function ReportsPage() {
     return date.toLocaleDateString();
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+
   const handleExport = async (reportId: string, format: 'pdf' | 'csv' | 'json') => {
-    // In production: Call API to export report
-    console.log(`Exporting report ${reportId} as ${format}`);
-    // const response = await axios.get(`${API_BASE_URL}/reports/${reportId}/export?format=${format}`, {
-    //   responseType: 'blob'
-    // });
-    // Download file
+    const report = reports.find(r => r.id === reportId);
+    if (!report) {
+      alert('Report not found');
+      return;
+    }
+
+    try {
+      if (format === 'json') {
+        const jsonData = {
+          id: report.id,
+          url: report.url,
+          domain: report.domain,
+          date: report.date,
+          lastScanned: formatDate(report.date),
+          scanDuration: report.scanDuration,
+          score: report.score,
+          previousScore: report.previousScore,
+          total_issues: report.total_issues,
+          wcag_level: report.wcag_level,
+          severity_breakdown: report.severity_breakdown,
+          topIssues: report.topIssues
+        };
+        const jsonString = JSON.stringify(jsonData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `accessibility-report-${report.domain}-${report.id}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else if (format === 'csv') {
+        const csvRows = [
+          ['Field', 'Value'],
+          ['Report ID', report.id],
+          ['Website URL', report.url],
+          ['Domain', report.domain],
+          ['Last Scanned', formatDate(report.date)],
+          ['Scan Duration (seconds)', report.scanDuration.toString()],
+          ['Accessibility Score', report.score.toFixed(1)],
+          ['Previous Score', report.previousScore?.toFixed(1) || 'N/A'],
+          ['Total Issues', report.total_issues.toString()],
+          ['WCAG Level', report.wcag_level],
+          ['High Severity Issues', report.severity_breakdown.high.toString()],
+          ['Medium Severity Issues', report.severity_breakdown.medium.toString()],
+          ['Low Severity Issues', report.severity_breakdown.low.toString()],
+          ['', ''],
+          ['Top Issues', 'Count']
+        ];
+        
+        report.topIssues.forEach(issue => {
+          csvRows.push([issue.type, issue.count.toString()]);
+        });
+
+        const csvContent = csvRows.map(row => 
+          row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(',')
+        ).join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `accessibility-report-${report.domain}-${report.id}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else if (format === 'pdf') {
+        // Create HTML content for PDF
+        const htmlContent = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="UTF-8">
+              <title>Accessibility Report - ${report.domain}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+                h1 { color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }
+                h2 { color: #1e40af; margin-top: 30px; }
+                .info-row { margin: 10px 0; }
+                .label { font-weight: bold; color: #555; }
+                .score { font-size: 36px; font-weight: bold; color: ${report.score >= 90 ? '#10b981' : report.score >= 70 ? '#f59e0b' : '#ef4444'}; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+                th { background-color: #f3f4f6; font-weight: bold; }
+                .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+              </style>
+            </head>
+            <body>
+              <h1>Accessibility Report</h1>
+              <div class="info-row">
+                <span class="label">Website URL:</span> ${report.url}
+              </div>
+              <div class="info-row">
+                <span class="label">Domain:</span> ${report.domain}
+              </div>
+              <div class="info-row">
+                <span class="label">Last Scanned:</span> ${formatDate(report.date)}
+              </div>
+              <div class="info-row">
+                <span class="label">Scan Duration:</span> ${report.scanDuration}s
+              </div>
+              
+              <h2>Accessibility Score</h2>
+              <div class="score">${report.score.toFixed(1)}/100</div>
+              ${report.previousScore ? `<p>Previous Score: ${report.previousScore.toFixed(1)} (${report.score > report.previousScore ? 'Improved' : 'Decreased'})</p>` : ''}
+              
+              <h2>Summary</h2>
+              <table>
+                <tr>
+                  <th>Metric</th>
+                  <th>Value</th>
+                </tr>
+                <tr>
+                  <td>Total Issues</td>
+                  <td>${report.total_issues}</td>
+                </tr>
+                <tr>
+                  <td>WCAG Level</td>
+                  <td>${report.wcag_level}</td>
+                </tr>
+                <tr>
+                  <td>High Severity</td>
+                  <td>${report.severity_breakdown.high}</td>
+                </tr>
+                <tr>
+                  <td>Medium Severity</td>
+                  <td>${report.severity_breakdown.medium}</td>
+                </tr>
+                <tr>
+                  <td>Low Severity</td>
+                  <td>${report.severity_breakdown.low}</td>
+                </tr>
+              </table>
+              
+              <h2>Top Issues</h2>
+              <table>
+                <tr>
+                  <th>Issue Type</th>
+                  <th>Count</th>
+                </tr>
+                ${report.topIssues.map(issue => `
+                  <tr>
+                    <td>${issue.type}</td>
+                    <td>${issue.count}</td>
+                  </tr>
+                `).join('')}
+              </table>
+              
+              <div class="footer">
+                <p>Generated on ${new Date().toLocaleString()}</p>
+                <p>Report ID: ${report.id}</p>
+              </div>
+            </body>
+          </html>
+        `;
+
+        // Open in new window and trigger print
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(htmlContent);
+          printWindow.document.close();
+          printWindow.onload = () => {
+            setTimeout(() => {
+              printWindow.print();
+            }, 250);
+          };
+        } else {
+          // Fallback: download as HTML file
+          const blob = new Blob([htmlContent], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `accessibility-report-${report.domain}-${report.id}.html`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      alert(`Failed to export ${format.toUpperCase()}. Please try again.`);
+    }
   };
 
   const handleDelete = async (reportId: string) => {
@@ -213,7 +400,7 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-8">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Accessibility Reports</h1>
+          <h1 id="reports-heading" className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Accessibility Reports</h1>
           <p className="mt-2 text-gray-600 dark:text-gray-300">
             View and manage your accessibility scan reports
             {filteredReports.length !== reports.length && (
@@ -235,7 +422,7 @@ export default function ReportsPage() {
 
       {/* Search and Filters Bar */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row gap-4" role="region" aria-labelledby="reports-heading">
           {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -261,13 +448,14 @@ export default function ReportsPage() {
           {/* Filter Toggle */}
           <div className="flex gap-2">
             <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors ${
                 showFilters || severityFilter !== 'all'
                   ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
                   : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
               aria-label="Toggle filters"
+              aria-pressed={showFilters || severityFilter !== 'all'}
             >
               <Filter className="w-4 h-4" />
               Filters
@@ -302,7 +490,7 @@ export default function ReportsPage() {
         {/* Expanded Filters */}
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" role="toolbar" aria-label="Filter severity">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300 py-2">Severity:</span>
               {(['all', 'high', 'medium', 'low'] as FilterSeverity[]).map((severity) => (
                 <button
@@ -313,6 +501,7 @@ export default function ReportsPage() {
                       ? 'bg-primary-600 text-white'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
+                  aria-pressed={severityFilter === severity}
                 >
                   {severity === 'all' ? 'All' : severity.charAt(0).toUpperCase() + severity.slice(1)}
                 </button>
@@ -352,18 +541,22 @@ export default function ReportsPage() {
                 {/* Menu Button */}
                 <div className="absolute top-4 right-4">
                   <button
+                    id={`report-menu-button-${report.id}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowMenu(showMenu === report.id ? null : report.id);
                     }}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     aria-label="More options"
+                    aria-expanded={showMenu === report.id}
+                    aria-controls={showMenu === report.id ? `report-menu-${report.id}` : undefined}
                   >
                     <MoreVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                   </button>
                   {showMenu === report.id && (
-                    <div className="absolute right-0 top-12 z-10 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+                    <div id={`report-menu-${report.id}`} role="menu" aria-labelledby={`report-menu-button-${report.id}`} className="absolute right-0 top-12 z-10 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
                       <button
+                        role="menuitem"
                         onClick={() => handleRescan(report.url)}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                       >
@@ -371,6 +564,7 @@ export default function ReportsPage() {
                         Re-Scan
                       </button>
                       <button
+                        role="menuitem"
                         onClick={() => setSelectedReport(report)}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                       >
@@ -379,6 +573,7 @@ export default function ReportsPage() {
                       </button>
                       <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
                       <button
+                        role="menuitem"
                         onClick={() => handleDelete(report.id)}
                         className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
                       >
@@ -429,25 +624,30 @@ export default function ReportsPage() {
                       {report.score.toFixed(1)}
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden" aria-hidden="true">
                     <div
                       className={`h-full ${scoreColors.bg} transition-all duration-500`}
                       style={{ width: `${report.score}%` }}
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(report.score)}
+                      aria-label={`Accessibility score ${report.score.toFixed(1)} out of 100`}
                     ></div>
                   </div>
                 </div>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                  <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800" aria-label={`High severity issues: ${report.severity_breakdown.high}`}>
                     <div className="text-xl font-bold text-red-600 dark:text-red-400">{report.severity_breakdown.high}</div>
                     <div className="text-xs text-red-700 dark:text-red-300 mt-1">High</div>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                  <div className="text-center p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800" aria-label={`Medium severity issues: ${report.severity_breakdown.medium}`}>
                     <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{report.severity_breakdown.medium}</div>
                     <div className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">Medium</div>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800" aria-label={`Low severity issues: ${report.severity_breakdown.low}`}>
                     <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{report.severity_breakdown.low}</div>
                     <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">Low</div>
                   </div>
@@ -457,14 +657,14 @@ export default function ReportsPage() {
                 {report.topIssues && report.topIssues.length > 0 && (
                   <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Top Issues:</div>
-                    <div className="space-y-1">
+                    <ul className="space-y-1" aria-label={`Top issues for ${report.domain}`}>
                       {report.topIssues.slice(0, 3).map((issue, idx) => (
-                        <div key={idx} className="flex items-center justify-between text-xs">
+                        <li key={idx} className="flex items-center justify-between text-xs">
                           <span className="text-gray-700 dark:text-gray-300 truncate">{issue.type}</span>
                           <span className="text-gray-500 dark:text-gray-400 font-medium ml-2">{issue.count}</span>
-                        </div>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
                 )}
 
@@ -519,13 +719,21 @@ export default function ReportsPage() {
         <div 
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in"
           onClick={() => setSelectedReport(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setSelectedReport(null); }}
+          role="presentation"
+          tabIndex={-1}
         >
           <div 
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="report-modal-title"
+            aria-describedby={`report-modal-desc-${selectedReport.id}`}
+            tabIndex={0}
           >
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Report Details</h2>
+              <h2 id="report-modal-title" className="text-2xl font-bold text-gray-900 dark:text-white">Report Details</h2>
               <button
                 onClick={() => setSelectedReport(null)}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -535,6 +743,7 @@ export default function ReportsPage() {
               </button>
             </div>
             <div className="p-6 space-y-6">
+              <div id={`report-modal-desc-${selectedReport.id}`} className="sr-only">Report for {selectedReport.domain}, scanned {formatRelativeTime(selectedReport.date)}, score {selectedReport.score.toFixed(1)} out of 100.</div>
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Website URL</p>
                 <a
@@ -550,7 +759,7 @@ export default function ReportsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Last Scanned</p>
-                  <p className="text-gray-900 dark:text-white">{formatRelativeTime(selectedReport.date)}</p>
+                  <p className="text-gray-900 dark:text-white">{formatDate(selectedReport.date)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Scan Duration</p>
@@ -573,7 +782,38 @@ export default function ReportsPage() {
                   );
                 })()}
               </div>
-              <div className="flex gap-3">
+              
+              {/* Additional Details */}
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">{selectedReport.severity_breakdown.high}</div>
+                  <div className="text-xs text-red-700 dark:text-red-300 mt-1">High Severity</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{selectedReport.severity_breakdown.medium}</div>
+                  <div className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">Medium Severity</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{selectedReport.severity_breakdown.low}</div>
+                  <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">Low Severity</div>
+                </div>
+              </div>
+
+              {selectedReport.topIssues && selectedReport.topIssues.length > 0 && (
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Top Issues</p>
+                  <div className="space-y-2">
+                    {selectedReport.topIssues.map((issue: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{issue.type}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{issue.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 flex-wrap">
                 <button
                   onClick={() => handleExport(selectedReport.id, 'pdf')}
                   className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"

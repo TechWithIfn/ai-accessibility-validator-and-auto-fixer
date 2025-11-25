@@ -1,86 +1,87 @@
-# Quick Start: Backend Server
+# Quick Start - Backend Server
 
-The backend server needs to be running for the scanner and code comparison features to work.
+## 🚀 Starting the Backend Server
 
-## Windows - Easiest Method
+### Option 1: Using Batch File (Recommended for Windows)
+1. Navigate to the `backend` folder
+2. Double-click `start_server.bat` or `start_backend_reliable.bat`
+3. Wait for the server to start (you'll see "Starting Backend Server...")
+4. The server will be available at `http://localhost:8000`
 
-### Option 1: Use the Batch File (Recommended)
-
-1. **Double-click** `backend\start_server.bat` file
-   - OR right-click → "Run as administrator"
-
-2. Wait for the server to start. You should see:
+### Option 2: Using PowerShell Script
+1. From the project root, run:
+   ```powershell
+   .\START_BACKEND.ps1
    ```
-   INFO:     Uvicorn running on http://0.0.0.0:8000
-   INFO:     Application startup complete.
-   ```
-
-3. Keep this window open while using the app.
-
-### Option 2: Use PowerShell Script
-
-1. Open PowerShell in the project root
-2. Run: `.\START_BACKEND.ps1`
-3. Keep the window open
 
 ### Option 3: Manual Start
-
-1. Open a terminal/PowerShell
-2. Navigate to backend:
-   ```powershell
+1. Open terminal/command prompt
+2. Navigate to the `backend` folder:
+   ```bash
    cd backend
    ```
 3. Activate virtual environment:
-   ```powershell
-   .\venv\Scripts\Activate.ps1
+   ```bash
+   # Windows
+   venv\Scripts\activate
+   
+   # Mac/Linux
+   source venv/bin/activate
    ```
-4. Start server:
-   ```powershell
-   python main.py
+4. Install dependencies (if not already installed):
+   ```bash
+   pip install fastapi uvicorn httpx beautifulsoup4 lxml
+   ```
+5. Start the server:
+   ```bash
+   python simple_server.py
    ```
 
-## Verify Backend is Running
+## ✅ Verify Backend is Running
 
-Open your browser and visit:
-- **Health Check**: http://localhost:8000/health
-- **API Docs**: http://localhost:8000/docs
-
-You should see:
-```json
-{"status": "healthy", "service": "accessibility-validator"}
+Once started, you should see:
+```
+🚀 Starting AI Accessibility Validator Backend
+📍 Server: http://localhost:8000
+📚 API Docs: http://localhost:8000/docs
+💚 Health: http://localhost:8000/health
 ```
 
-## Troubleshooting
+### Test the Backend:
+1. Open browser and go to: `http://localhost:8000/health`
+2. You should see: `{"status":"healthy","service":"accessibility-validator"}`
+3. API documentation: `http://localhost:8000/docs`
 
-### Port Already in Use
-If port 8000 is already in use:
-1. Find and close the process using port 8000:
-   ```powershell
-   netstat -ano | findstr :8000
-   ```
-2. Or change the port in `backend/main.py` (last line)
+## 🔧 Troubleshooting
 
-### Missing Dependencies
-If you get import errors:
-```powershell
-cd backend
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+### "Cannot connect to backend" Error
+1. **Check if backend is running:**
+   - Open `http://localhost:8000/health` in browser
+   - If it doesn't load, the backend is not running
 
-### Virtual Environment Not Found
-The batch file will create it automatically. Or manually:
-```powershell
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+2. **Start the backend:**
+   - Use one of the methods above to start the server
+   - Make sure you see "Starting Backend Server..." message
 
-## Important Notes
+3. **Check port 8000:**
+   - Make sure no other application is using port 8000
+   - You can change the port in `simple_server.py` if needed
 
-- **Keep the terminal window open** while using the app
-- The backend runs on `http://localhost:8000` by default
-- Frontend connects automatically if backend is running
-- If backend is offline, you'll see an error message with these instructions
+### "Python is not installed" Error
+- Install Python 3.8+ from https://www.python.org/
+- Make sure Python is added to PATH during installation
 
+### "Failed to create virtual environment" Error
+- Make sure Python is properly installed
+- Try running: `python -m venv venv` manually
+
+### "Module not found" Error
+- Activate virtual environment
+- Install dependencies: `pip install fastapi uvicorn httpx beautifulsoup4 lxml`
+
+## 📝 Notes
+
+- The backend must be running before using the scanner
+- Keep the backend terminal window open while using the app
+- Press `Ctrl+C` to stop the server
+- The simple_server.py is more reliable and has fewer dependencies

@@ -32,11 +32,31 @@ class SimpleScanner:
     async def fetch_website(self, url: str):
         """Fetch website content"""
         import httpx
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            html = response.text
-            return html, "", ""
+        
+        # Ensure URL has protocol
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(30.0, connect=10.0),
+                follow_redirects=True,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+            ) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                html = response.text
+                return html, "", ""
+        except httpx.TimeoutException:
+            raise Exception(f"Request timeout: Could not fetch {url} within 30 seconds")
+        except httpx.ConnectError:
+            raise Exception(f"Connection error: Could not connect to {url}. Check if the URL is correct and accessible.")
+        except httpx.HTTPStatusError as e:
+            raise Exception(f"HTTP error {e.response.status_code}: {e.response.status_text}")
+        except Exception as e:
+            raise Exception(f"Failed to fetch website: {str(e)}")
     
     async def scan_comprehensive(self, html, css, js, url):
         """Simple scan that returns basic issues"""
@@ -146,12 +166,47 @@ async def scan_url(request: ScanURLRequest):
     """Scan a website URL for accessibility issues"""
     try:
         url = request.url if isinstance(request.url, str) else str(request.url)
+        url = url.strip()
+        
+        # Validate and fix URL
+        if not url:
+            raise HTTPException(status_code=400, detail="URL cannot be empty")
+        
+        # Add protocol if missing
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        # Validate URL format
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            if not parsed.netloc:
+                raise HTTPException(status_code=400, detail="Invalid URL format")
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid URL format")
+        
+        print(f"🌐 Scanning URL: {url}")
         
         # Fetch and parse the website
-        html_content, css_content, js_content = await scanner.fetch_website(url)
+        try:
+            html_content, css_content, js_content = await scanner.fetch_website(url)
+            print(f"✅ Fetched website content ({len(html_content)} chars)")
+        except Exception as fetch_error:
+            error_msg = str(fetch_error)
+            if "timeout" in error_msg.lower():
+                raise HTTPException(status_code=408, detail=f"Request timeout: {error_msg}")
+            elif "connection" in error_msg.lower() or "refused" in error_msg.lower():
+                raise HTTPException(status_code=503, detail=f"Cannot connect to website: {error_msg}")
+            else:
+                raise HTTPException(status_code=400, detail=f"Failed to fetch website: {error_msg}")
         
         # Run comprehensive accessibility scan
-        issues = await scanner.scan_comprehensive(html_content, css_content, js_content, url)
+        try:
+            issues = await scanner.scan_comprehensive(html_content, css_content, js_content, url)
+            print(f"✅ Scan completed: {len(issues)} issues found")
+        except Exception as scan_error:
+            print(f"⚠️  Scan error: {scan_error}")
+            issues = []
         
         # Calculate score and WCAG level
         score = scanner.calculate_accessibility_score(issues)
@@ -165,8 +220,12 @@ async def scan_url(request: ScanURLRequest):
             wcag_level=wcag_level,
             score=score
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error scanning URL: {str(e)}")
+        error_msg = str(e)
+        print(f"❌ Error scanning URL: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Error scanning URL: {error_msg}")
 
 @app.post("/scan-html", response_model=ScanResponse)
 async def scan_html(request: ScanHTMLRequest):

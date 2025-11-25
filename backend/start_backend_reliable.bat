@@ -1,6 +1,6 @@
 @echo off
 echo ================================================
-echo Starting AI Accessibility Validator Backend
+echo AI Accessibility Validator - Backend Server
 echo ================================================
 echo.
 
@@ -10,16 +10,9 @@ REM Check if backend is already running
 echo Checking if backend is already running...
 curl -s http://localhost:8000/health >nul 2>&1
 if not errorlevel 1 (
-    echo [INFO] Backend appears to be already running!
-    echo You can verify at: http://localhost:8000/health
+    echo [INFO] Backend appears to be already running at http://localhost:8000/health
+    echo You may want to stop the existing instance first.
     echo.
-    echo Do you want to start another instance anyway? (Y/N)
-    set /p restart="> "
-    if /i not "%restart%"=="Y" (
-        echo Exiting. Backend is already running.
-        pause
-        exit /b 0
-    )
 )
 
 REM Check if Python is installed
@@ -31,14 +24,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [1/4] Python found
+echo [1/5] Python found
 python --version
 
-REM Check if virtual environment exists
-if exist "venv\Scripts\activate.bat" (
-    echo [2/4] Virtual environment found
-) else (
-    echo [2/4] Creating virtual environment...
+REM Check if virtual environment exists, create if not
+if not exist "venv\Scripts\activate.bat" (
+    echo [2/5] Creating virtual environment...
     python -m venv venv
     if errorlevel 1 (
         echo [ERROR] Failed to create virtual environment
@@ -46,10 +37,12 @@ if exist "venv\Scripts\activate.bat" (
         exit /b 1
     )
     echo        Virtual environment created successfully
+) else (
+    echo [2/5] Virtual environment found
 )
 
 REM Activate virtual environment
-echo [3/4] Activating virtual environment...
+echo [3/5] Activating virtual environment...
 call venv\Scripts\activate.bat
 if errorlevel 1 (
     echo [ERROR] Failed to activate virtual environment
@@ -57,39 +50,45 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Install/upgrade pip and essential dependencies
-echo [4/4] Checking dependencies...
+REM Install/upgrade pip
+echo [4/5] Upgrading pip...
 python -m pip install --upgrade pip --quiet
 if errorlevel 1 (
     echo [WARNING] Failed to upgrade pip, continuing anyway...
 )
 
+REM Install essential dependencies
+echo [5/5] Installing essential dependencies...
 pip install fastapi uvicorn httpx beautifulsoup4 lxml --quiet
 if errorlevel 1 (
     echo [WARNING] Some dependencies may not have installed correctly
-    echo Continuing anyway...
+    echo Trying again without quiet mode...
+    pip install fastapi uvicorn httpx beautifulsoup4 lxml
 )
 
 echo.
 echo ================================================
-echo Starting FastAPI server...
+echo Starting Backend Server...
 echo ================================================
-echo Server: http://localhost:8000
-echo API Docs: http://localhost:8000/docs
-echo Health: http://localhost:8000/health
+echo.
+echo Server URL: http://localhost:8000
+echo API Docs:   http://localhost:8000/docs
+echo Health:     http://localhost:8000/health
 echo.
 echo Press Ctrl+C to stop the server
 echo ================================================
 echo.
 
-REM Try simple_server.py first (more reliable)
-if exist "simple_server.py" (
-    echo Using simple server (more reliable)...
-    python simple_server.py
-) else (
-    echo Using main server...
-    python main.py
+REM Check if port is in use
+netstat -ano | findstr ":8000" >nul 2>&1
+if not errorlevel 1 (
+    echo [WARNING] Port 8000 appears to be in use
+    echo You may need to stop the existing process first
+    echo.
 )
+
+REM Start the server using simple_server.py (most reliable)
+python simple_server.py
 
 if errorlevel 1 (
     echo.
@@ -97,9 +96,11 @@ if errorlevel 1 (
     echo.
     echo Troubleshooting:
     echo 1. Make sure port 8000 is not in use
-    echo 2. Check if all dependencies are installed: pip install -r requirements.txt
+    echo    Check: netstat -ano ^| findstr ":8000"
+    echo 2. Check if all dependencies are installed
     echo 3. Try running: python simple_server.py manually
-    echo 4. Check if another instance is already running
+    echo 4. Check Python version: python --version (need 3.8+)
     echo.
     pause
 )
+
