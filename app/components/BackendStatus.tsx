@@ -149,8 +149,8 @@ export default function BackendStatus({ className = '' }: BackendStatusProps) {
             <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
               <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Quick Start:</p>
               <ol className="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-decimal list-inside">
-                <li>Navigate to the "backend" folder</li>
-                <li>Double-click "start_server.bat"</li>
+                <li>Navigate to the &quot;backend&quot; folder</li>
+                <li>Double-click &quot;start_server.bat&quot;</li>
                 <li>Wait for server to start</li>
               </ol>
             </div>

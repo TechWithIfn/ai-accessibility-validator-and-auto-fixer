@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // Allow ESLint warnings during build (warnings won't block deployment)
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+  
   // Performance optimizations
   compress: true,
   poweredByHeader: false,

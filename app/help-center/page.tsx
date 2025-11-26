@@ -125,7 +125,7 @@ export default function HelpCenterPage() {
       <section className="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-6 border border-primary-200 dark:border-primary-800 mt-8">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Still need help?</h2>
         <p className="text-gray-600 dark:text-gray-300 mb-4">
-          Can't find what you're looking for? Our support team is here to help.
+          Can&apos;t find what you&apos;re looking for? Our support team is here to help.
         </p>
         <Link
           href="/contact"

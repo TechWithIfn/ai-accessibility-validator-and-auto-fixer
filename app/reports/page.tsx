@@ -700,7 +700,7 @@ export default function ReportsPage() {
           <Search className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Reports Found</h3>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Try adjusting your search or filters to find what you're looking for.
+            Try adjusting your search or filters to find what you&apos;re looking for.
           </p>
           <button
             onClick={() => {

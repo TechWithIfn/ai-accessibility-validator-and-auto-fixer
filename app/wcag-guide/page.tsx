@@ -132,20 +132,20 @@ export default function WCAGGuidePage() {
               <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Missing Alt Text</h3>
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Images without descriptive alt attributes.</p>
               <div className="bg-gray-50 dark:bg-gray-900 rounded p-2 text-xs font-mono">
-                &lt;img src="photo.jpg" alt="Description of image" /&gt;
+                &lt;img src=&quot;photo.jpg&quot; alt=&quot;Description of image&quot; /&gt;
               </div>
             </div>
             <div className="border-l-4 border-yellow-500 pl-4">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Low Color Contrast</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Text that doesn't meet minimum contrast ratios.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Text that doesn&apos;t meet minimum contrast ratios.</p>
               <p className="text-sm text-gray-600 dark:text-gray-300">Solution: Use contrast ratio of at least 4.5:1 for normal text, 3:1 for large text.</p>
             </div>
             <div className="border-l-4 border-blue-500 pl-4">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Missing Form Labels</h3>
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Form inputs without associated labels.</p>
               <div className="bg-gray-50 dark:bg-gray-900 rounded p-2 text-xs font-mono">
-                &lt;label for="email"&gt;Email&lt;/label&gt;<br />
-                &lt;input id="email" type="email" /&gt;
+                &lt;label for=&quot;email&quot;&gt;Email&lt;/label&gt;<br />
+                &lt;input id=&quot;email&quot; type=&quot;email&quot; /&gt;
               </div>
             </div>
           </div>

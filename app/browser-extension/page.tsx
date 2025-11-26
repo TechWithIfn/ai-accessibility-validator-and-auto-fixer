@@ -66,8 +66,8 @@ export default function BrowserExtensionPage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Chrome / Edge</h3>
               <ol className="list-decimal list-inside space-y-3 text-gray-600 dark:text-gray-300">
                 <li>Open Chrome and navigate to <code className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">chrome://extensions/</code></li>
-                <li>Enable "Developer mode" (toggle in top right)</li>
-                <li>Click "Load unpacked"</li>
+                <li>Enable &quot;Developer mode&quot; (toggle in top right)</li>
+                <li>Click &quot;Load unpacked&quot;</li>
                 <li>Select the <code className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">extension</code> folder from this project</li>
                 <li>The extension icon will appear in your toolbar</li>
               </ol>
@@ -108,7 +108,7 @@ export default function BrowserExtensionPage() {
                 3
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Click "Scan This Page"</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Click &quot;Scan This Page&quot;</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">The extension will analyze the current page for accessibility issues.</p>
               </div>
             </div>
@@ -134,7 +134,7 @@ export default function BrowserExtensionPage() {
             Your privacy is important to us. The extension:
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300">
-            <li>Only scans pages when you explicitly click "Scan This Page"</li>
+            <li>Only scans pages when you explicitly click &quot;Scan This Page&quot;</li>
             <li>Does not collect or store personal information</li>
             <li>Processes data locally or through your configured backend</li>
             <li>Does not track your browsing history</li>
