@@ -55,39 +55,87 @@ type SortOption = 'date-desc' | 'date-asc' | 'score-desc' | 'score-asc' | 'issue
 type FilterSeverity = 'all' | 'high' | 'medium' | 'low';
 
 export default function ReportsPage() {
-  const [reports, setReports] = useState(mockReports);
-  const [filteredReports, setFilteredReports] = useState(mockReports);
+  const [reports, setReports] = useState<any[]>([]);
+  const [filteredReports, setFilteredReports] = useState<any[]>([]);
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [severityFilter, setSeverityFilter] = useState<FilterSeverity>('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Simulate user authentication (in production, get from auth context)
-  const [isAuthenticated] = useState(true);
-  const [userId] = useState('user-123'); // In production, get from auth
-
+  // Fetch reports from API
   useEffect(() => {
-    // In production: Fetch reports from API with user authentication
-    // const fetchReports = async () => {
-    //   setIsLoading(true);
-    //   try {
-    //     const token = localStorage.getItem('authToken');
-    //     const response = await axios.get(`${API_BASE_URL}/reports`, {
-    //       headers: { Authorization: `Bearer ${token}` },
-    //       params: { userId }
-    //     });
-    //     setReports(response.data);
-    //   } catch (error) {
-    //     console.error('Failed to fetch reports:', error);
-    //   } finally {
-    //     setIsLoading(false);
-    //   }
-    // };
-    // fetchReports();
-  }, [userId]);
+    const fetchReports = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get(`${API_BASE_URL}/reports`, {
+          params: {
+            limit: 100,
+            order_by: 'scan_date',
+            order_dir: 'DESC'
+          }
+        });
+        
+        if (response.data.success && response.data.reports) {
+          // Transform API data to match frontend format
+          const transformedReports = response.data.reports.map((report: any) => {
+            // Get previous score for this URL
+            const urlReports = response.data.reports.filter((r: any) => r.url === report.url);
+            const sortedByDate = urlReports.sort((a: any, b: any) => 
+              new Date(b.scan_date).getTime() - new Date(a.scan_date).getTime()
+            );
+            const previousReport = sortedByDate.find((r: any) => r.id !== report.id);
+            
+            return {
+              id: report.id.toString(),
+              url: report.url,
+              domain: report.domain || new URL(report.url).hostname,
+              date: report.scan_date || report.date,
+              score: report.score,
+              previousScore: previousReport?.score,
+              total_issues: report.total_issues,
+              wcag_level: report.wcag_level,
+              severity_breakdown: report.severity_breakdown || { high: 0, medium: 0, low: 0, critical: 0 },
+              topIssues: report.topIssues || [],
+              scanDuration: report.scan_duration || 0,
+              lastScanned: formatRelativeTime(report.scan_date || report.date)
+            };
+          });
+          
+          setReports(transformedReports);
+        } else {
+          setReports([]);
+        }
+      } catch (error: any) {
+        console.error('Failed to fetch reports:', error);
+        setError(error.response?.data?.detail || error.message || 'Failed to load reports');
+        setReports([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchReports();
+  }, []);
+  
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
 
   // Filter and sort reports
   useEffect(() => {
@@ -145,21 +193,6 @@ export default function ReportsPage() {
     if (diff > 0) return { icon: TrendingUp, color: 'text-green-500', text: `+${diff.toFixed(1)}` };
     if (diff < 0) return { icon: TrendingDown, color: 'text-red-500', text: diff.toFixed(1) };
     return null;
-  };
-
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString();
   };
 
   const formatDate = (dateString: string) => {
@@ -360,19 +393,29 @@ export default function ReportsPage() {
 
   const handleDelete = async (reportId: string) => {
     if (!confirm('Are you sure you want to delete this report?')) return;
-    // In production: Call API to delete
-    setReports(reports.filter(r => r.id !== reportId));
-    setShowMenu(null);
+    
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/reports/${reportId}`);
+      if (response.data.success) {
+        setReports(reports.filter(r => r.id !== reportId));
+        setShowMenu(null);
+      } else {
+        alert('Failed to delete report');
+      }
+    } catch (error: any) {
+      console.error('Failed to delete report:', error);
+      alert(error.response?.data?.detail || 'Failed to delete report');
+    }
   };
 
   const handleRescan = async (url: string) => {
-    // In production: Trigger new scan
-    console.log(`Rescanning ${url}`);
+    // Redirect to scanner with URL pre-filled
+    window.location.href = `/scanner?url=${encodeURIComponent(url)}`;
     setShowMenu(null);
   };
 
-  // Empty state for authenticated users with no reports
-  if (isAuthenticated && reports.length === 0 && !isLoading) {
+  // Empty state for users with no reports
+  if (reports.length === 0 && !isLoading && !error) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 text-center border border-gray-200 dark:border-gray-700">
@@ -510,6 +553,19 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-6">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <div>
+              <p className="font-semibold text-red-700 dark:text-red-300">Error loading reports</p>
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Loading State */}
       {isLoading && (

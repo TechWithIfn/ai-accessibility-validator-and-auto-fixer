@@ -1,9 +1,13 @@
 "use client";
 
 import { useState, useCallback, memo, useEffect } from 'react';
-import { Scan, Upload, Loader2, AlertCircle, CheckCircle, ExternalLink, ChevronDown, ChevronUp, Lightbulb, Clock, FileText } from 'lucide-react';
+import { Scan, Upload, Loader2, AlertCircle, CheckCircle, ExternalLink, ChevronDown, ChevronUp, Lightbulb, Clock, FileText, Sparkles, Download, Eye } from 'lucide-react';
 import axios from 'axios';
 import BackendStatus from '../components/BackendStatus';
+import ScanningAnimation from '../components/ScanningAnimation';
+import IssueBreakdown from '../components/IssueBreakdown';
+import AutoFixPanel from '../components/AutoFixPanel';
+import ColorContrastAnalyzer from '../components/ColorContrastAnalyzer';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -49,6 +53,9 @@ export default function ScannerPage() {
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [resultExpanded, setResultExpanded] = useState(true);
+  const [activeView, setActiveView] = useState<'summary' | 'issues' | 'contrast' | 'fix'>('summary');
+  const [selectedIssue, setSelectedIssue] = useState<any>(null);
+  const [scanStep, setScanStep] = useState(0);
 
   const handleUrlScan = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,9 +75,22 @@ export default function ScannerPage() {
     setError(null);
     setResult(null);
     setResultExpanded(true);
+    setScanStep(0);
+    setActiveView('summary');
+
+    // Simulate scan steps
+    const stepInterval = setInterval(() => {
+      setScanStep(prev => {
+        if (prev < 3) return prev + 1;
+        clearInterval(stepInterval);
+        return prev;
+      });
+    }, 1500);
 
     try {
       const response = await apiClient.post<ScanResult>('/scan-url', { url: url.trim() });
+      clearInterval(stepInterval);
+      setScanStep(3);
       setResult(response.data);
     } catch (err: any) {
       let errorMessage = 'Failed to scan URL. ';
@@ -371,61 +391,217 @@ export default function ScannerPage() {
                 </div>
               )}
 
-              {/* Result Preview Panel */}
-              {result && (
-                <div className={`glass rounded-[14px] p-6 animate-in fade-in zoom-in-95 transition-all duration-300 ${resultExpanded ? 'shadow-lg' : ''}`}>
-                  <button
-                    onClick={() => setResultExpanded(!resultExpanded)}
-                    className="w-full flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-lg p-2 -m-2"
-                    aria-expanded={resultExpanded}
-                  >
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="flex items-center gap-2">
-                        <div className={`px-4 py-2 rounded-full font-bold text-lg ${
+              {/* Scanning Animation */}
+              {loading && <ScanningAnimation isScanning={loading} currentStep={scanStep} />}
+
+              {/* Enhanced Results Panel */}
+              {result && !loading && (
+                <div className="space-y-6 animate-in fade-in zoom-in-95">
+                  {/* Summary Card */}
+                  <div className="glass rounded-[14px] p-6 border-l-4 border-primary-500">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`px-6 py-3 rounded-full font-bold text-2xl ${
                           result.score >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                           result.score >= 60 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
                           'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                           {Math.round(result.score)}
                         </div>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">/ 100</span>
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Accessibility Score</p>
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">WCAG {result.wcag_level}</p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-4">
                         {criticalIssues.length > 0 && (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg">
                             <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{criticalIssues.length} Critical</span>
+                            <span className="text-sm font-medium text-red-700 dark:text-red-400">{criticalIssues.length} Critical</span>
                           </div>
                         )}
                         {warningIssues.length > 0 && (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
                             <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{warningIssues.length} Warnings</span>
+                            <span className="text-sm font-medium text-orange-700 dark:text-orange-400">{warningIssues.length} Warnings</span>
                           </div>
                         )}
                       </div>
                     </div>
-                    {resultExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400" aria-hidden="true" />
-                    )}
-                  </button>
-                  
-                  {resultExpanded && (
-                    <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4 animate-in fade-in">
-                      <div className="grid grid-cols-2 gap-4">
-                        <StatCard label="Total Issues" value={result.total_issues} />
-                        <StatCard label="WCAG Level" value={result.wcag_level} />
-                      </div>
-                      <a
-                        href="/reports"
-                        className="block w-full text-center py-3 px-4 rounded-lg border-2 border-primary-600 text-primary-600 dark:text-primary-400 font-semibold hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                      >
-                        View Full Report
-                      </a>
+                    <div className="grid grid-cols-3 gap-4 mt-4">
+                      <StatCard label="Total Issues" value={result.total_issues} />
+                      <StatCard label="WCAG Level" value={result.wcag_level} />
+                      <StatCard label="Issues Fixed" value="0" />
                     </div>
-                  )}
+                  </div>
+
+                  {/* View Tabs */}
+                  <div className="border-b border-gray-200 dark:border-gray-700">
+                    <nav className="flex space-x-1" aria-label="Result views">
+                      {[
+                        { id: 'summary', label: 'Summary', icon: FileText },
+                        { id: 'issues', label: 'Issues', icon: AlertCircle },
+                        { id: 'contrast', label: 'Color Contrast', icon: Eye },
+                        { id: 'fix', label: 'Auto-Fix', icon: Sparkles },
+                      ].map(({ id, label, icon: Icon }) => (
+                        <button
+                          key={id}
+                          onClick={() => {
+                            setActiveView(id as any);
+                            if (id === 'fix' && result.issues.length > 0) {
+                              setSelectedIssue(result.issues[0]);
+                            }
+                          }}
+                          className={`relative px-6 py-3 text-sm font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                            activeView === id
+                              ? 'text-primary-600 dark:text-primary-400'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4 inline mr-2" />
+                          {label}
+                          {activeView === id && (
+                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-600 to-accent-500 rounded-full"></span>
+                          )}
+                        </button>
+                      ))}
+                    </nav>
+                  </div>
+
+                  {/* View Content */}
+                  <div className="min-h-[400px]">
+                    {activeView === 'summary' && (
+                      <div className="space-y-4">
+                        <div className="glass rounded-[14px] p-6">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Scan Summary</h3>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                                {result.issues.filter((i: any) => i.severity === 'high' || i.severity === 'critical').length}
+                              </p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">High Priority</p>
+                            </div>
+                            <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                                {result.issues.filter((i: any) => i.severity === 'medium').length}
+                              </p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Medium</p>
+                            </div>
+                            <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                                {result.issues.filter((i: any) => i.severity === 'low').length}
+                              </p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Low</p>
+                            </div>
+                            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                {result.total_issues}
+                              </p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Total</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <a
+                            href="/reports"
+                            className="flex-1 text-center py-3 px-4 rounded-lg border-2 border-primary-600 text-primary-600 dark:text-primary-400 font-semibold hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200"
+                          >
+                            View Full Report
+                          </a>
+                          <button
+                            onClick={() => {
+                              const jsonData = JSON.stringify(result, null, 2);
+                              const blob = new Blob([jsonData], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `accessibility-scan-${Date.now()}.json`;
+                              link.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="flex items-center gap-2 px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                          >
+                            <Download className="w-4 h-4" />
+                            Export JSON
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeView === 'issues' && (
+                      <div>
+                        {result.issues.length > 0 ? (
+                          <>
+                            <div className="mb-4 flex items-center justify-between">
+                              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                All Issues ({result.issues.length})
+                              </h3>
+                              <button
+                                onClick={async () => {
+                                  // Auto-fix all button
+                                  alert('Auto-fix all feature will fix all eligible issues. This is a demo.');
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-600 to-accent-500 text-white font-semibold rounded-lg hover:from-primary-700 hover:to-accent-600 transition-all"
+                              >
+                                <Sparkles className="w-4 h-4" />
+                                Auto-Fix All
+                              </button>
+                            </div>
+                            <IssueBreakdown
+                              issues={result.issues}
+                              onIssueClick={(issue) => {
+                                setSelectedIssue(issue);
+                                setActiveView('fix');
+                              }}
+                              onFixRequest={(issue) => {
+                                setSelectedIssue(issue);
+                                setActiveView('fix');
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <div className="text-center py-12 glass rounded-[14px]">
+                            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                            <p className="text-gray-600 dark:text-gray-400">No issues found! Great job!</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {activeView === 'contrast' && (
+                      <ColorContrastAnalyzer
+                        issues={result.issues}
+                        onAutoFix={(issue) => {
+                          setSelectedIssue(issue);
+                          setActiveView('fix');
+                        }}
+                      />
+                    )}
+
+                    {activeView === 'fix' && selectedIssue && (
+                      <AutoFixPanel
+                        issue={selectedIssue}
+                        onFixComplete={(fix) => {
+                          console.log('Fix completed:', fix);
+                        }}
+                      />
+                    )}
+
+                    {activeView === 'fix' && !selectedIssue && (
+                      <div className="text-center py-12 glass rounded-[14px]">
+                        <Sparkles className="w-12 h-12 text-primary-500 mx-auto mb-4" />
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                          Select an issue from the Issues tab to generate an AI fix
+                        </p>
+                        <button
+                          onClick={() => setActiveView('issues')}
+                          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                        >
+                          View Issues
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
