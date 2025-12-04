@@ -67,3 +67,8 @@ Thumbs.db
 # Extension
 extension/*.crx
 extension/*.pem
+
+# Database
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
